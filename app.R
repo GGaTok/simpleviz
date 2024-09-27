@@ -495,9 +495,9 @@ server <- function(input, output, session) {
   })
   
   observe({
-    updateSelectInput(session, "x_col", choices = names(volcano_data()))
-    updateSelectInput(session, "y_col", choices = names(volcano_data()))
-    updateSelectInput(session, "label_col", choices = names(volcano_data()))
+    updateSelectInput(session, "x_col", choices = "log2FoldChange")
+    updateSelectInput(session, "y_col", choices = "pvalue")
+    updateSelectInput(session, "label_col", choices = "gene")
     
     if (is.null(input$volcano_file)) {
       updateSelectInput(session, "x_col", selected = "log2FoldChange")
