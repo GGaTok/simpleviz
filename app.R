@@ -151,7 +151,7 @@ ui <- navbarPage(
                sliderInput("x.range", "X-axis range:",
                            min = -10, max = 10, value = c(-5, 5)),
                sliderInput("y.range", "Y-axis range:",
-                           min = 0, max = 300, value = c(0, 15)),
+                           min = 0, max = 310, value = c(0, 15)),
                sliderInput("point_size", "Data point size:",
                            min = 0.1, max = 5, value = 1, step = 0.1),
                numericInput("plot_width", "Plot width (pixels):", 
@@ -494,10 +494,35 @@ server <- function(input, output, session) {
     }
   })
   
+  # Calculate axis limits based on data
+  axis_limits <- reactive({
+    data <- volcano_data()
+    zero_present <- any(data$padj == 0, na.rm = TRUE)
+    
+    if (zero_present) {
+      y_max <- 310
+    } else {
+      y_max <- -log10(max(data$padj[data$padj > 0], na.rm = TRUE))
+    }
+    x_min <- min(data$log2FoldChange, na.rm = TRUE)
+    x_max <- max(data$log2FoldChange, na.rm = TRUE)
+    list(y_max = y_max, x_min = x_min, x_max = x_max)
+  })
+  
   observe({
+    limits <- axis_limits()
+    
     updateSelectInput(session, "x_col", choices = "log2FoldChange")
     updateSelectInput(session, "y_col", choices = "pvalue")
     updateSelectInput(session, "label_col", choices = "gene")
+    
+    updateSliderInput(session, "y.range", 
+                      min = 0, max = 310, 
+                      value = c(0, max(15, ceiling(limits$y_max))))
+    
+    updateSliderInput(session, "x.range", 
+                      min = -10, max = 10, 
+                      value = c(floor(limits$x_min), ceiling(limits$x_max)))
     
     if (is.null(input$volcano_file)) {
       updateSelectInput(session, "x_col", selected = "log2FoldChange")
