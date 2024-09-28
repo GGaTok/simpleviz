@@ -513,7 +513,7 @@ server <- function(input, output, session) {
     limits <- axis_limits()
     
     updateSelectInput(session, "x_col", choices = "log2FoldChange")
-    updateSelectInput(session, "y_col", choices = "pvalue")
+    updateSelectInput(session, "y_col", choices = c("padj", "pvalue"))
     updateSelectInput(session, "label_col", choices = "gene")
     
     updateSliderInput(session, "y.range", 
@@ -526,7 +526,7 @@ server <- function(input, output, session) {
     
     if (is.null(input$volcano_file)) {
       updateSelectInput(session, "x_col", selected = "log2FoldChange")
-      updateSelectInput(session, "y_col", selected = "pvalue")
+      updateSelectInput(session, "y_col", selected = "padj")
       updateSelectInput(session, "label_col", selected = "gene")
     }
   })
