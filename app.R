@@ -119,7 +119,14 @@ ui <- navbarPage(
                sliderInput("lineThickness", "Box/Violin Line Thickness:", min = 0, max = 2, value = 1.0, step = 0.05),
                sliderInput("fontSize", "Font Size:", min = 6, max = 24, value = 12, step = 1),
                sliderInput("plotWidth", "Plot Width (pixels):", value = 400, min = 200, max = 2000, step = 10),
-               sliderInput("plotHeight", "Plot Height (pixels):", value = 600, min = 200, max = 1500, step = 10)
+               sliderInput("plotHeight", "Plot Height (pixels):", value = 600, min = 200, max = 1500, step = 10),
+               hr(),
+               h4("Save Plot"),
+               textInput("filename", "File name:", value = "my_plot"),
+               selectInput("dpi", "DPI:", 
+                           choices = c("72", "150", "300", "600"), 
+                           selected = "300"),
+               downloadButton("save_plot", "Save Plot as PNG") 
              ),
              mainPanel(
                uiOutput("dynamic_output")
@@ -185,6 +192,9 @@ ui <- navbarPage(
                sliderInput("point_size", "Point Size:", min = 1, max = 5, value = 2, step = 0.5),
                sliderInput("axis_font_size", "Axis Font Size:", min = 8, max = 20, value = 12, step = 1),
                checkboxInput("add_ellipse", "Add ellipses", value = TRUE),
+               selectInput("ellipse_type", "Ellipse Type:", 
+                           choices = c("concentration", "convex"),
+                           selected = "concentration"),
                checkboxInput("show_points", "Show points without text", value = TRUE),
                sliderInput("plot_width", "Plot Width:", min = 400, max = 1200, value = 800, step = 50),
                sliderInput("plot_height", "Plot Height:", min = 300, max = 1000, value = 600, step = 50),
@@ -206,6 +216,7 @@ ui <- navbarPage(
 server <- function(input, output, session) {
   
   # Box plot: plotting
+  current_box_plot <- reactiveVal()
   data <- reactiveVal(boxplot_default_data)
   color_palette <- reactiveVal(NULL)
   
@@ -219,7 +230,7 @@ server <- function(input, output, session) {
   
   # Box plot: Define default colors
   default_colors <- c("#F8766D", "#00BA38", "#619CFF", "#F564E3", "#00BFC4", "#B79F00")
-
+  
   # Box plot: Initialize color palette
   observe({
     req(data())
@@ -427,6 +438,7 @@ server <- function(input, output, session) {
                                     method = input$stat_method)
       }
     }
+    current_box_plot(p)
     
     p
   }, width = function() input$plotWidth, height = function() input$plotHeight)
@@ -484,6 +496,21 @@ server <- function(input, output, session) {
       cat("Not enough groups to perform statistical tests.")
     }
   })
+  
+  # Box Plot: png export
+  output$save_plot <- downloadHandler(
+    filename = function() {
+      paste0(input$filename, ".png")
+    },
+    content = function(file) {
+      ggsave(file,
+             plot = current_box_plot(),
+             device = "png",
+             width = input$plotWidth/as.numeric(input$dpi),
+             height = input$plotHeight/as.numeric(input$dpi),
+             dpi = as.numeric(input$dpi))
+    }
+  )
   
   # Volcano Plot: data selection
   volcano_data <- reactive({
@@ -558,7 +585,7 @@ server <- function(input, output, session) {
       theme(panel.grid.major = element_blank(), 
             panel.grid.minor = element_blank())
   }, width = function() input$plot_width, height = function() input$plot_height)
-
+  
   # Volcano Plot: download example data 
   output$download_example <- downloadHandler(
     filename = function() {
@@ -575,7 +602,7 @@ server <- function(input, output, session) {
       return(example_pca_data)
     } else {
       df <- read.delim(input$pca_file$datapath, sep = "\t", header = TRUE, check.names = FALSE)
-     
+      
       df_long <- df %>%
         pivot_longer(cols = -Sample, names_to = "Variable", values_to = "Value") %>%
         pivot_wider(names_from = "Sample", values_from = "Value")
@@ -610,7 +637,7 @@ server <- function(input, output, session) {
   
   pca_result <- reactive({
     df <- pca_dataset()
-    PCA(df[, -(1:2)], graph = FALSE)
+    PCA(df[, -(1:2)], scale.unit = TRUE, graph = FALSE)
   })
   
   # PCA Plot: option change
@@ -655,22 +682,28 @@ server <- function(input, output, session) {
     x_axis <- which(paste0("Dim", 1:5) == input$x_axis)
     y_axis <- which(paste0("Dim", 1:5) == input$y_axis)
     
-    plot <- fviz_pca_ind(res.pca,
-                         title = "PCA Plot",
-                         axes = c(x_axis, y_axis),
-                         geom.ind = if(input$show_points) "point" else c("point", "text"),
-                         col.ind = df$Group,
-                         palette = selected_palette(),
-                         addEllipses = input$add_ellipse,
-                         ellipse.level = 0.9,
-                         legend.title = "Groups",
-                         mean.point = FALSE,
-                         pointsize = input$point_size) +
+    plot <- do.call(fviz_pca_ind, c(
+      list(
+        X = res.pca,
+        title = "PCA Plot",
+        repel = TRUE,
+        axes = c(x_axis, y_axis),
+        geom.ind = if(input$show_points) "point" else c("point", "text"),
+        col.ind = df$Group,
+        palette = selected_palette(),
+        addEllipses = input$add_ellipse,
+        ellipse.level = 0.9,
+        legend.title = "Groups",
+        mean.point = FALSE,
+        pointsize = input$point_size
+      ),
+      if(input$add_ellipse && input$ellipse_type != "concentration") list(ellipse.type = input$ellipse_type) else list()
+    )) +
       theme(axis.line = element_line(color = "black"),
             panel.border = element_blank(),
             panel.background = element_blank(),
-#            panel.grid.major = element_blank(),
-#            panel.grid.minor = element_blank(),
+            #            panel.grid.major = element_blank(),
+            #            panel.grid.minor = element_blank(),
             axis.text = element_text(size = input$axis_font_size),
             axis.title = element_text(size = input$axis_font_size + 2)) +
       scale_x_continuous(position = "bottom", limits = input$x_range) +
@@ -678,7 +711,6 @@ server <- function(input, output, session) {
     
     plot
   }, width = function() input$plot_width, height = function() input$plot_height)
-
   # PCA Plot: statistical test
   output$permanova_result <- renderPrint({
     res.pca <- pca_result()
