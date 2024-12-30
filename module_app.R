@@ -20,7 +20,6 @@ library(BiocManager)
 library(pheatmap)
 library(tidyr)
 
-
  # 모듈 파일 로드
 #setwd("C:/R/SimpleViz/simpleviz")
 # Load configuration and modules
@@ -28,7 +27,7 @@ source("modules/boxplotModule.R")
 source("modules/pcaModule.R")
 source("modules/volcanoModule.R")
 source("modules/heatmapModule.R")
-source("modules/heatmapmodule_ploty.R")
+#source("modules/heatmapmodule_ploty.R")
 # Load some fonts
 font_add_google("Tinos", "Times New Roman")
 showtext_auto()
