@@ -62,7 +62,17 @@ boxplotUI <- function(id) {
         sliderInput(ns("plotWidth"), "Plot Width (pixels):", value = 400, min = 200, max = 2000, step = 10),
         sliderInput(ns("plotHeight"), "Plot Height (pixels):", value = 600, min = 200, max = 1500, step = 10),
         hr(),
+<<<<<<< HEAD
         ),
+=======
+        h4("Save Plot"),
+        textInput(ns("filename"), "File name:", value = "my_plot"),
+        selectInput(ns("dpi"), "DPI:", 
+                    choices = c("72", "150", "300", "600"), 
+                    selected = "300"),
+        downloadButton(ns("save_plot"), "Save Plot as PNG") 
+      ),
+>>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
       mainPanel(
         uiOutput(ns("dynamic_output"))
       )
