@@ -1,4 +1,6 @@
-# PCA example data
+# modules/pcaModule.R
+
+# 0. example dataset
 set.seed(123)
 n_samples <- 100
 n_features <- 20
@@ -17,7 +19,7 @@ colnames(data) <- paste0("Feature", 1:n_features)
 sample_names <- paste0("Sample", 1:nrow(data))
 example_pca_data <- data.frame(Sample = sample_names, Group = groups, data)
 
-# 1. UI 부분: pcaUI()
+# 1. UI
 pcaUI <- function(id) {
   ns <- NS(id)
   
@@ -70,7 +72,7 @@ pcaUI <- function(id) {
   )
 }
 
-# 2. Server 부분: pcaServer()
+# 2. Server
 pcaServer <- function(id, examplePCAData=example_pca_data) {
   moduleServer(
     id,

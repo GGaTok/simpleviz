@@ -12,9 +12,7 @@ citationUI <- function(id) {
       tags$p("Year: 2025"),
       p("SimpleViz allows you to create box/violin/dot plots, volcano plot, PCA plot, Heatmap and DEseq2 with statistical analysis.")
     ),
-    
-
-    div(
+      div(
       class = "code-fence",
       h4("Latest Updates"),
       tags$pre(

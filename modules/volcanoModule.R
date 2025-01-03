@@ -1,5 +1,6 @@
-# volcanoModule.R
-# Volcano Plot: example dataset
+# modules/volcanoModule.R
+
+# 0. example dataset
 set.seed(123)
 n_genes <- 1000
 log2FC <- seq(-5, 5, length.out = n_genes)
@@ -10,7 +11,7 @@ example_volcano_data <- data.frame(
   pvalue = pvalues,
   padj = p.adjust(pvalues, method = "BH")
 )
-# 1. UI 부분: volcanoUI()
+# 1. UI
 volcanoUI <- function(id) {
   # Shiny 모듈 Namespace 설정
   ns <- NS(id)
@@ -58,7 +59,7 @@ volcanoUI <- function(id) {
 }
 
 
-# 2. Server 부분: volcanoServer()
+# 2. Server
 volcanoServer <- function(id, exampleData=example_volcano_data) {
   moduleServer(
     id,

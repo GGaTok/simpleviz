@@ -1,10 +1,12 @@
-# Boxplot example data
+# modules/boxplotModule.R
+
+# 0. example dataset
 boxplot_default_data <- data.frame(
   dose = factor(c(0.5, 0.5, 0.5, 1, 1, 1, 2, 2, 2, 0.5, 0.5, 0.5, 1, 1, 1, 2, 2, 2)),
   len = c(4.2, 11.5, 7.3, 16.5, 16.5, 15.2, 19.7, 23.3, 23.6, 15.2, 21.5, 17.6, 22.4, 25.8, 19.7, 28.5, 33.9, 30.9),
   supp = factor(c('VC', 'VC', 'VC', 'VC', 'VC', 'VC', 'VC', 'VC', 'VC', 'OJ', 'OJ', 'OJ', 'OJ', 'OJ', 'OJ', 'OJ', 'OJ', 'OJ'))
 )
-
+# 1. UI
 boxplotUI <- function(id) {
   ns <- NS(id)
   tagList(
@@ -61,18 +63,8 @@ boxplotUI <- function(id) {
         sliderInput(ns("fontSize"), "Font Size:", min = 6, max = 24, value = 12, step = 1),
         sliderInput(ns("plotWidth"), "Plot Width (pixels):", value = 400, min = 200, max = 2000, step = 10),
         sliderInput(ns("plotHeight"), "Plot Height (pixels):", value = 600, min = 200, max = 1500, step = 10),
-        hr(),
-<<<<<<< HEAD
-        ),
-=======
-        h4("Save Plot"),
-        textInput(ns("filename"), "File name:", value = "my_plot"),
-        selectInput(ns("dpi"), "DPI:", 
-                    choices = c("72", "150", "300", "600"), 
-                    selected = "300"),
-        downloadButton(ns("save_plot"), "Save Plot as PNG") 
-      ),
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
+        hr()),
+
       mainPanel(
         uiOutput(ns("dynamic_output"))
       )
@@ -80,7 +72,7 @@ boxplotUI <- function(id) {
   )
 }
 
-
+# 2. Server
 boxplotServer <- function(id, default_data = boxplot_default_data) {
   moduleServer(id, function(input, output, session) {
     

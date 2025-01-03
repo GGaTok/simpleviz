@@ -1,15 +1,17 @@
-set.seed(123)  # 재현 가능한 랜덤 시드
+# modules/heatmapModule.R
 
-# 1) Gene, Sample 이름 설정
+# 0. example dataset
+
+set.seed(123)  
+
 genes   <- paste0("Gene", 1:5)
 samples <- paste0("Sample", 1:3)
 
-# 2) 행=유전자, 열=샘플 인 5x3 matrix 생성
 mat_data <- matrix(runif(5 * 3, min = 0, max = 10), nrow = 5, ncol = 3)
 rownames(mat_data) <- genes
 colnames(mat_data) <- samples
 
-# 1. UI 부분: heatmapUI()
+# 1. UI
 heatmapUI <- function(id) {
   ns <- NS(id)
   
@@ -36,16 +38,11 @@ heatmapUI <- function(id) {
       sidebarPanel(
         position = "left",
         
-<<<<<<< HEAD
         # (1) 탭 구분 텍스트 입력
-=======
-        # 1) 텍스트 입력
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
         textAreaInput(ns("matrix_input"), "Paste your matrix data (tab-separated):",
                       rows = 10,
                       placeholder = "gene\tSample1\tSample2\tSample3\nGene1\t2.875\t0.455\t9.563\nGene2\t7.883\t5.281\t4.533\nGene3\t4.089\t8.924\t6.775\nGene4\t8.830\t5.514\t5.726\nGene5\t9.404\t4.566\t1.029"),
         
-<<<<<<< HEAD
         div(class = "button-space",
             fluidRow(
               column(5, 
@@ -62,21 +59,6 @@ heatmapUI <- function(id) {
         hr(),
         
         # (4) 히트맵 파라미터 설정
-=======
-        
-        # 2) 파일 업로드
-        fileInput(ns("heatmap_file"), "Upload your TSV file",
-                  accept = c("text/tab-separated-values", 
-                             "text/plain", ".tsv", ".txt")),
-        actionButton(ns("submit"), "Submit Data"),
-        
-        # 3) 예제 데이터 다운로드
-        downloadButton(ns("downloadHeatmapData"), "Example Data"),
-        
-        hr(),
-        
-        # 4) 히트맵 파라미터 설정
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
         selectInput(ns("scale_option"), "Scale:", 
                     choices = c("none", "row", "column"), 
                     selected = "none"),
@@ -96,23 +78,14 @@ heatmapUI <- function(id) {
                     choices = c("RdBu", "Blues", "Greens", "Reds", 
                                 "YlOrRd", "YlGnBu", "heat.colors"), 
                     selected = "RdBu"),
-<<<<<<< HEAD
 #        sliderInput(ns("num_colors"), "Number of Colors:", 
 #                    min = 3, max = 100, value = 9),
-=======
-        sliderInput(ns("num_colors"), "Number of Colors:", 
-                    min = 3, max = 15, value = 9),
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
         
         # **폰트 크기 설정 (추가)**
         sliderInput(ns("font_size"), "Font Size:",
                     min = 5, max = 20, value = 10, step = 1),
         
-<<<<<<< HEAD
         # (5) 플롯 크기 설정
-=======
-        # 5) 플롯 크기 설정
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
         sliderInput(ns("plot_width"), "Plot Width:", 
                     min = 400, max = 1200, value = 700, step = 50),
         sliderInput(ns("plot_height"), "Plot Height:", 
@@ -125,12 +98,7 @@ heatmapUI <- function(id) {
   )
 }
 
-<<<<<<< HEAD
-=======
-
-
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
-# 2. Server 부분: heatmapServer()
+# 2. Server
 
 heatmapServer <- function(id, exampleHeatmapData = mat_data, exampleAnnotation = NULL) {
   moduleServer(
@@ -138,7 +106,6 @@ heatmapServer <- function(id, exampleHeatmapData = mat_data, exampleAnnotation =
     function(input, output, session) {
       ns <- session$ns
       
-<<<<<<< HEAD
       # (A) 사용자가 텍스트 영역에 입력한 데이터를 저장할 reactiveVal
       parsed_text_data <- reactiveVal(NULL)
       
@@ -180,23 +147,10 @@ heatmapServer <- function(id, exampleHeatmapData = mat_data, exampleAnnotation =
             header = TRUE, 
             check.names = FALSE
           )
-=======
-      # 1 업로드 또는 예제 데이터 불러오기
-      heatmap_data <- reactive({
-        # 업로드 파일이 없으면 예제 데이터 사용
-        if (is.null(input$heatmap_file)) {
-          return(exampleHeatmapData)
-        } else {
-          df <- read.delim(input$heatmap_file$datapath, 
-                           sep = "\t", header = TRUE, check.names = FALSE)
-          
-          # 첫 열이 유전자명, 나머지 열이 샘플값
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
           mat <- as.matrix(df[,-1])
           rownames(mat) <- df[[1]]
           return(mat)
         }
-<<<<<<< HEAD
         # 3. 그 외에는 예제 데이터 사용
         else {
           return(exampleHeatmapData)
@@ -204,52 +158,29 @@ heatmapServer <- function(id, exampleHeatmapData = mat_data, exampleAnnotation =
       })
       
       # (D) Heatmap Plot 생성
-=======
-      })
-      
-      # 2 Heatmap Plot 생성
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
       output$heatmap_plot <- renderPlot({
         req(heatmap_data())
         mat <- heatmap_data()
         
         # 색상 팔레트 생성
         pal_name <- input$color_palette
-<<<<<<< HEAD
         pal_size <- 100
         
         # RColorBrewer 여부에 따른 팔레트 설정
-=======
-        pal_size <- input$num_colors
-        
-        # 내장 팔레트들 중 선택된 이름에 따라 팔레트 구성
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
         if (pal_name %in% rownames(brewer.pal.info)) {
           # RColorBrewer 팔레트
           colors <- colorRampPalette(brewer.pal(min(pal_size, 9), pal_name))(pal_size)
         } else {
-<<<<<<< HEAD
           # heat.colors 등 base R 팔레트
           if (pal_name == "heat.colors") {
             colors <- heat.colors(pal_size)
           } else {
             # 기타 예외처리 (혹은 고정 RdBu 등)
-=======
-          # heat.colors() 등 base R 팔레트 지원
-          if (pal_name == "heat.colors") {
-            colors <- heat.colors(pal_size)
-          } else {
-            # 기타 예외처리 (RdBu, etc.)
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
             colors <- colorRampPalette(brewer.pal(9, "RdBu"))(pal_size)
           }
         }
         
-<<<<<<< HEAD
         # annotation_col (옵션)
-=======
-        # annotation_col: (옵션) 열 주석
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
         annotation_col <- exampleAnnotation
         if (!is.null(exampleAnnotation) && nrow(exampleAnnotation) == ncol(mat)) {
           rownames(annotation_col) <- colnames(mat)
@@ -257,16 +188,10 @@ heatmapServer <- function(id, exampleHeatmapData = mat_data, exampleAnnotation =
           annotation_col <- NA
         }
         
-<<<<<<< HEAD
         # pheatmap 실행
         pheatmap(
           mat,
           scale = input$scale_option,               
-=======
-        pheatmap(
-          mat,
-          scale = input$scale_option,               # "none", "row", or "column"
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
           cluster_rows = input$cluster_rows,
           cluster_cols = input$cluster_cols,
           color = colors,
@@ -276,7 +201,6 @@ heatmapServer <- function(id, exampleHeatmapData = mat_data, exampleAnnotation =
           clustering_method = input$hclust_method,
           legend = TRUE,
           border_color = "grey80",
-<<<<<<< HEAD
           main = "Heatmap",
           fontsize = input$font_size
         )
@@ -285,23 +209,10 @@ heatmapServer <- function(id, exampleHeatmapData = mat_data, exampleAnnotation =
       
       # (E) 예제 데이터 다운로드
       output$download_example <- downloadHandler(
-=======
-          main = "Heatmap Example",
-          fontsize = input$font_size  
-        )
-      }, width = function() input$plot_width, height = function() input$plot_height)
-      
-      # (3) 예제 데이터 다운로드
-      output$downloadHeatmapData <- downloadHandler(
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
         filename = function() {
           "example_heatmap_data.tsv"
         },
         content = function(file) {
-<<<<<<< HEAD
-=======
-          # 예제 데이터가 matrix 형태라면 TSV로 저장하기 위해 data.frame 변환
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
           mat <- exampleHeatmapData
           df_out <- data.frame(rownames(mat), mat, check.names = FALSE)
           colnames(df_out)[1] <- "Gene"
@@ -311,7 +222,3 @@ heatmapServer <- function(id, exampleHeatmapData = mat_data, exampleAnnotation =
     }
   )
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> 683bdece440bf3b61f32ad6fff05903138e6721e
