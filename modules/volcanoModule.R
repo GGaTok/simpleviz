@@ -35,7 +35,7 @@ volcanoUI <- function(id) {
         textInput(ns("highlight_genes"), "Highlight genes (comma-separated)", "Gene_300,Gene_301"),
         
         sliderInput(ns("x.range"), "X-axis range:",
-                    min = -10, max = 10, value = c(-5, 5)),
+                    min = -20, max = 20, value = c(-5, 5)),
         sliderInput(ns("y.range"), "Y-axis range:",
                     min = 0, max = 310, value = c(0, 15)),
         sliderInput(ns("point_size"), "Data point size:",
@@ -108,7 +108,7 @@ volcanoServer <- function(id, exampleData=example_volcano_data) {
                           value = c(0, max(15, ceiling(limits$y_max))))
         
         updateSliderInput(session, "x.range", 
-                          min = -10, max = 10, 
+                          min = -20, max = 20, 
                           value = c(floor(limits$x_min), ceiling(limits$x_max)))
         
         if (is.null(input$volcano_file)) {

@@ -24,7 +24,25 @@ ex_meta <- data.frame(
 
 deseqUI <- function(id) {
   ns <- NS(id)
-  
+  tagList(
+  titlePanel("DESeq2"),
+  tags$head(
+    tags$style(HTML("
+              .button-space {
+                margin-bottom: 20px;
+              }
+              .col-sm-4 {
+                position: sticky;
+                top: 60px;
+                height: calc(100vh - 60px);
+                overflow-y: auto;
+              }
+              .col-sm-8 {
+                height: calc(100vh - 60px);
+                overflow-y: auto;
+              }
+            "))
+  ),
   sidebarLayout(
 
     # (A) 왼쪽 사이드바
@@ -105,6 +123,7 @@ deseqUI <- function(id) {
       DTOutput(ns("deseq_table"))
     )
   )
+ )
 }
 
 
@@ -250,7 +269,16 @@ deseqServer <- function(id) {
         paste0("deseq_results_", Sys.Date(), ".tsv")
       },
       content = function(file) {
-        write.csv(deseq_results_df(), file, row.names = TRUE)
+        res_df <- as.data.frame(deseq_results())
+        res_df <- cbind(gene = rownames(res_df), res_df)
+        res_df <- res_df[, c("gene", "baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj")]
+        write.table(
+          res_df,
+          file,
+          sep = "\t",
+          row.names = FALSE,   # 'gene' 열이 이미 있으므로 FALSE
+          quote = FALSE
+        )
       }
     )
     
@@ -262,9 +290,20 @@ deseqServer <- function(id) {
         paste0("example_counts_", Sys.Date(), ".tsv")
       },
       content = function(file) {
-        write.csv(ex_counts, file, row.names = TRUE)
+        # (1) 행 이름을 새로운 열 'Geneid'로 변환
+        df_out <- data.frame(Geneid = rownames(ex_counts), ex_counts)
+        
+        # (2) 파일에 저장(맨 앞 열이 "Geneid"가 됨)
+        write.table(
+          df_out,
+          file,
+          sep = "\t",
+          row.names = FALSE,  # 별도의 행 이름을 쓰지 않음
+          quote = FALSE
+        )
       }
     )
-
+    
   })
 }
+
