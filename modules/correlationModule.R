@@ -5,8 +5,12 @@ set.seed(123)
 genes   <- paste0("Gene", 1:10)
 samples <- paste0("Sample", 1:5)
 
-
-mat_data_example <- matrix(runif(10*5, min = 0, max = 15), nrow = 10, ncol = 5)
+# 예시 데이터: 소수점 둘째 자리까지 반올림
+mat_data_example <- matrix(
+  round(runif(10*5, min = 0, max = 15), 2),
+  nrow = 10,
+  ncol = 5
+)
 rownames(mat_data_example) <- genes
 colnames(mat_data_example) <- samples
 
@@ -79,7 +83,7 @@ correlationUI <- function(id) {
         
         # (F) 폰트, 플롯 크기
         sliderInput(ns("fontsize_number"), "Font Size for Numbers:",
-                    min = 3, max = 15, value = 5, step = 1),
+                    min = 3, max = 30, value = 10, step = 1),
         sliderInput(ns("font_size"), "Font Size for Labels:",
                     min = 5, max = 20, value = 10, step = 1),
         sliderInput(ns("plot_width"), "Plot Width:", 
@@ -148,7 +152,8 @@ correlationServer <- function(id, exampleData = mat_data_example) {
         
         # (1) 상관계수 계산
         corr_mat <- cor(mat, method = input$corrMethod, use = "complete.obs")
-        
+        corr_mat <- round(corr_mat, 2)
+        # 
         # (2) 거리 계산
         dist_rows <- NULL
         dist_cols <- NULL
@@ -173,7 +178,7 @@ correlationServer <- function(id, exampleData = mat_data_example) {
           }
         }
         
-        # (4) pheatmap: 숫자를 소수점 둘째 자리까지 표시 (셋째 자리에서 반올림)
+        # (4) pheatmap: 숫자를 소수점 둘째 자리까지 표시
         pheatmap::pheatmap(
           corr_mat,
           color = colors,
@@ -187,7 +192,7 @@ correlationServer <- function(id, exampleData = mat_data_example) {
           # 텍스트 및 숫자
           fontsize = input$font_size,
           display_numbers = if (input$show_numbers) corr_mat else FALSE,
-          number_format = "%.3f",          # 소수점 셋째 자리에서 반올림 → 둘째 자리까지만 표시
+          number_format = "%.2f",      # ← 소수점 둘째 자리까지만 표시
           fontsize_number = input$fontsize_number
         )
       },

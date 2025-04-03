@@ -1,26 +1,23 @@
-# modules/citation_Module.R
+# modules/citationModule.R
 
 #UI
 citationUI <- function(id) {
   ns <- NS(id)
-  
   tagList(
     div(
       class = "citation-section",
       h4("Citation"),
-      tags$code("Author: Juhee Kim"),
+      tags$code("Author: Juhee Kim and Yong-joon Cho"),
       tags$p("Year: 2025"),
       p("SimpleViz allows you to create box/violin/dot plots, volcano plot, PCA plot, Heatmap and DEseq2 with statistical analysis.")
     ),
       div(
       class = "code-fence",
       h4("Latest Updates"),
-      tags$pre(
-        class = "r-code",
         verbatimTextOutput(ns("updateContents"))
       )
     )
-  )
+
 }
 
 # Server
