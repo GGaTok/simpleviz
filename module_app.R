@@ -22,10 +22,10 @@ library(tidyr)
 library(DESeq2)
 library(DT)
 library(sortable)
-library(reactwidgets)
+library(gggenes)
+library(rtracklayer)
+library(tools)
 
-#library(plotly)
-#library(heatmaply)
 
 # Load configuration and modules
 source("modules/boxplotModule.R")
@@ -35,7 +35,7 @@ source("modules/heatmapModule.R")
 source("modules/deseqModule.R")
 source("modules/citationModule.R")
 source("modules/correlationModule.R")
-
+source("modules/GenesyntenyModule.R")
 # Load some fonts
 font_add_google("Tinos", "Times New Roman")
 showtext_auto()
@@ -52,6 +52,7 @@ ui <- navbarPage(
   tabPanel("Heatmap", heatmapUI("heatmap")),
   tabPanel("DeSeq2", deseqUI("DeSeq2")),
   tabPanel("Correlation matrix",correlationUI("correlation")),
+  tabPanel("Genesynteny",GenesyntenyUI("Genesynteny")),
   tabPanel("Citation", citationUI("citation")),
   
   header = tags$div(
@@ -70,9 +71,11 @@ server <- function(input, output, session) {
   heatmapServer("heatmap")
   deseqServer("DeSeq2")
   correlationServer("correlation")
+  GenesyntenyServer("Genesynteny")
   citationServer("citation")
   
 }
+options(shiny.maxRequestSize = 100 * 1024^2)
 
 # Run the app
 shinyApp(ui, server)
