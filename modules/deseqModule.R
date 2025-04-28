@@ -3,7 +3,7 @@
 # 0. example dataset
 set.seed(123)
 
-# 예시 count matrix
+# Example count matrix
 ex_counts <- data.frame(
   Sample1 = c(50, 200, 0, 100, 15),
   Sample2 = c(40, 220, 5, 80, 10),
@@ -14,7 +14,7 @@ ex_counts <- data.frame(
 )
 rownames(ex_counts) <- c("GeneA", "GeneB", "GeneC", "GeneD", "GeneE")
 
-# example metadata
+# Example metadata
 ex_meta <- data.frame(
   condition = c("Control", "Control", "Control", "Treatment", "Treatment", "Treatment"),
   row.names = c("Sample1", "Sample2", "Sample3", "Sample4", "Sample5", "Sample6")
@@ -43,35 +43,35 @@ deseqUI <- function(id) {
             "))
     ),
     sidebarLayout(
-      # (A) 왼쪽 사이드바
+      # (A) Left Sidebar
       sidebarPanel(
-        h4("샘플 및 그룹 설정"),
+        h4("Sample and Group Settings"),
         
-        # (1) Count Data 업로드
+        # (1) Count Data Upload
         fileInput(
           ns("count_file"),
-          label = "Count Data 업로드 (TSV)",
+          label = "Upload Count Data (TSV)",
           accept = c(".csv", ".tsv", ".txt")
         ),
-        helpText("업로드하지 않으면 예시 데이터를 사용합니다."),
+        helpText("Example data will be used if no file is uploaded."),
         br(),
         
-        # (1-2) 예시 데이터 다운로드 버튼
-        downloadButton(ns("download_ex_counts"), "Download Example data"),
+        # (1-2) Example Data Download Button
+        downloadButton(ns("download_ex_counts"), "Download Example Data"),
         br(), br(),
         
-        # (2) Available Samples (클릭으로 선택)
+        # (2) Available Samples (Select by Click)
         selectInput(
           ns("available_samples"),
           label = "Available Samples",
           choices = character(0),
           selected = NULL,
           multiple = TRUE,
-          selectize = FALSE,  # size 옵션 사용 위해 selectize 꺼둠
+          selectize = FALSE,  # Turn off selectize to use size option
           size = 6
         ),
         
-        # (3) Add 버튼: 선택된 샘플 → Group1, Group2
+        # (3) Add Button: Selected Samples → Group1, Group2
         fluidRow(
           column(6, actionButton(ns("add_group1"), "-> G1")),
           column(6, actionButton(ns("add_group2"), "-> G2"))
@@ -106,17 +106,17 @@ deseqUI <- function(id) {
         actionButton(ns("remove_group2"), "<- Remove"),
         br(), br(),
         
-        # (6) DESeq2 실행 / 다운로드 버튼
-        actionButton(ns("run_deseq"), "DESeq2 실행", class = "btn-primary"),
+        # (6) DESeq2 Run / Download Button
+        actionButton(ns("run_deseq"), "Run DESeq2", class = "btn-primary"),
         br(), br(),
         downloadButton(ns("download_deseq_res"), "Download DESeq2 Result"),
         
-        width = 4  # 사이드바 폭 조절
+        width = 4  # Sidebar width adjustment
       ),
       
-      # (B) 오른쪽 메인 영역
+      # (B) Right Main Area
       mainPanel(
-        h4("DESeq2 analysis result "),
+        h4("DESeq2 Analysis Result"),
         DTOutput(ns("deseq_table"))
       )
     )
@@ -128,7 +128,7 @@ deseqServer <- function(id) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
-    # (A) Count Data 가져오기 (업로드 or 예시)
+    # (A) Get Count Data (Upload or Example)
     countData <- reactive({
       if (!is.null(input$count_file)) {
         ext <- tools::file_ext(input$count_file$name)
@@ -142,14 +142,14 @@ deseqServer <- function(id) {
       }
     })
     
-    # (B) 그룹 관리용 reactiveValues
+    # (B) Group Management with reactiveValues
     rvals <- reactiveValues(
       available = character(0),
       group1 = character(0),
       group2 = character(0)
     )
     
-    # (C) countData() 변경 시 샘플 초기화
+    # (C) Initialize Samples when countData() Changes
     observeEvent(countData(), {
       samples <- colnames(countData())
       n <- length(samples)
@@ -172,7 +172,7 @@ deseqServer <- function(id) {
       }
     })
     
-    # (D) Add/Remove 버튼 로직
+    # (D) Add/Remove Button Logic
     observeEvent(input$add_group1, {
       selected <- input$available_samples
       rvals$group1 <- unique(c(rvals$group1, selected))
@@ -197,7 +197,7 @@ deseqServer <- function(id) {
       rvals$group2 <- setdiff(rvals$group2, selected)
     })
     
-    # (E) selectInput와 reactiveValues 동기화
+    # (E) Synchronize selectInput with reactiveValues
     observe({
       updateSelectInput(session, "available_samples",
                         choices  = rvals$available,
@@ -213,7 +213,7 @@ deseqServer <- function(id) {
       )
     })
     
-    # (F) metaData 생성
+    # (F) Create metaData
     makeMetaData <- reactive({
       req(countData())
       allSamples <- colnames(countData())
@@ -225,7 +225,7 @@ deseqServer <- function(id) {
       data.frame(condition = cond, row.names = allSamples)
     })
     
-    # (G) DESeq2 실행
+    # (G) Run DESeq2
     dds <- eventReactive(input$run_deseq, {
       cData <- countData()
       mData <- makeMetaData()
@@ -239,40 +239,40 @@ deseqServer <- function(id) {
       dds_obj
     })
     
-    # (H) 결과 테이블 & 다운로드
-    # --- (1) DESeq2 결과와 정규화 카운트 병합 ---
+    # (H) Result Table & Download
+    # --- (1) Merge DESeq2 Results with Normalized Counts ---
     deseq_results_with_norm <- reactive({
       req(dds())
-      # 1) DEG 결과
+      # 1) DEG Results
       res  <- results(dds())
       resdf <- as.data.frame(res)
       resdf$gene <- rownames(resdf)
       
-      # 2) 정규화 카운트
+      # 2) Normalized Counts
       normCounts <- counts(dds(), normalized=TRUE)
       normCountsDF <- as.data.frame(normCounts)
       normCountsDF$gene <- rownames(normCountsDF)
       
-      # 3) cbind를 위해 row이름 기준 정렬 (혹은 merge)
-      #    여기서는 gene 컬럼 기준 merge 사용
+      # 3) Merge based on row names (or merge)
+      #    Here we use merge based on gene column
       merged_df <- merge(resdf, normCountsDF, by = "gene", all.x = TRUE)
       
-      # 4) gene 열을 맨 앞으로 빼고 나머지 순서 조정
-      #    DESeq2 결과(default column들) + 샘플별 정규화 카운트 순
-      #    resdf 기본 컬럼: "gene", "baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj"
-      #    normCountsDF: gene 제외하고 Sample 열들
+      # 4) Move gene column to the front and adjust the order of the rest
+      #    DESeq2 results (default columns) + normalized counts order by sample
+      #    resdf default columns: "gene", "baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj"
+      #    normCountsDF: gene excluded, Sample columns
       deg_cols <- c("gene","baseMean","log2FoldChange","lfcSE","stat","pvalue","padj")
       sample_cols <- setdiff(colnames(normCountsDF), "gene")
       
-      # colnames(merged_df)은 ["gene","baseMean","log2FoldChange","lfcSE","stat","pvalue","padj",
-      #                        "Sample1","Sample2","..."] (순서 보장 안 될 수 있음)
-      # 따라서 deg_cols + sample_cols 순으로 재정렬
+      # colnames(merged_df) is ["gene","baseMean","log2FoldChange","lfcSE","stat","pvalue","padj",
+      #                        "Sample1","Sample2","..."] (order not guaranteed)
+      # Therefore, reorder to deg_cols + sample_cols order
       merged_df <- merged_df[, c(deg_cols, sample_cols)]
       
       merged_df
     })
     
-    # --- (2) DT 출력 ---
+    # --- (2) DT Output ---
     output$deseq_table <- renderDT({
       req(deseq_results_with_norm())
       datatable(
@@ -282,7 +282,7 @@ deseqServer <- function(id) {
       )
     })
     
-    # --- (3) 다운로드 ---
+    # --- (3) Download ---
     output$download_deseq_res <- downloadHandler(
       filename = function() {
         paste0("deseq_results_with_norm_", Sys.Date(), ".tsv")
@@ -299,21 +299,21 @@ deseqServer <- function(id) {
       }
     )
     
-    # (I) 예시 데이터 다운로드 추가
+    # (I) Add Example Data Download
     output$download_ex_counts <- downloadHandler(
       filename = function() {
         paste0("example_counts_", Sys.Date(), ".tsv")
       },
       content = function(file) {
-        # (1) 행 이름을 새로운 열 'Geneid'로 변환
+        # (1) Convert row names to a new column 'Geneid'
         df_out <- data.frame(Geneid = rownames(ex_counts), ex_counts)
         
-        # (2) 파일에 저장(맨 앞 열이 "Geneid"가 됨)
+        # (2) Save to file (first column is "Geneid")
         write.table(
           df_out,
           file,
           sep = "\t",
-          row.names = FALSE,  # 별도의 행 이름을 쓰지 않음
+          row.names = FALSE,  # No separate row names
           quote = FALSE
         )
       }

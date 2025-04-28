@@ -1,6 +1,7 @@
+250428 : Added SVG download feature and various bug fixes
 250403 : Heatmap, Correlation Module are edited
-250210 : Deseq2 download format was edited, In the case of the box plot function, even if the number of elements in each sample differs, you can still generate the plot and perform a t-test.
-250124 : volcano plot x axis was updated, Deseq2 download formats were updated
+250210 : DESeq2 download format was edited, In the case of the box plot function, even if the number of elements in each sample differs, you can still generate the plot and perform a t-test.
+250124 : volcano plot x axis was updated, DESeq2 download formats were updated
 250106 : Correlation matrix was added
 250103 : logo was added
 241231 : Citation was added

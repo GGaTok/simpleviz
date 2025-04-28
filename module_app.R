@@ -25,26 +25,18 @@ library(sortable)
 library(gggenes)
 library(rtracklayer)
 library(tools)
+library(svglite)
 
 
-<<<<<<< HEAD
- # 모듈 파일 로드
-#setwd("C:/R/SimpleViz")
-=======
->>>>>>> ea65ec81e682dd872ed47baa0e0e1856b5045989
 # Load configuration and modules
 source("modules/boxplotModule.R")
 source("modules/pcaModule.R")
 source("modules/volcanoModule.R")
 source("modules/heatmapModule.R")
-<<<<<<< HEAD
-#source("modules/heatmapmodule_ploty.R")
-=======
 source("modules/deseqModule.R")
 source("modules/citationModule.R")
 source("modules/correlationModule.R")
-source("modules/GenesyntenyModule.R")
->>>>>>> ea65ec81e682dd872ed47baa0e0e1856b5045989
+#source("modules/GenesyntenyModule.R")
 # Load some fonts
 font_add_google("Tinos", "Times New Roman")
 showtext_auto()
@@ -58,17 +50,10 @@ ui <- navbarPage(
   tabPanel("Box/Violin/Dot Plot", boxplotUI("boxplot")),
   tabPanel("PCA Plot", pcaUI("pca")),
   tabPanel("Volcano Plot", volcanoUI("volcano")),
-<<<<<<< HEAD
-  tabPanel("Heatmap",heatmapUI("heatmap")),
-#  tabPanel("Heatmap1",heatmaplyUI("heatmap")),
-  tabPanel("Citation", 
-           h3("About this app"),
-           p("SimpleViz allows you to create box/violin/dot plots, volcano plot and PCA plot with statistical analysis.")
-=======
   tabPanel("Heatmap", heatmapUI("heatmap")),
-  tabPanel("DeSeq2", deseqUI("DeSeq2")),
+  tabPanel("DESeq2", deseqUI("DESeq2")),
   tabPanel("Correlation matrix",correlationUI("correlation")),
-  tabPanel("Genesynteny",GenesyntenyUI("Genesynteny")),
+#  tabPanel("Genesynteny",GenesyntenyUI("Genesynteny")),
   tabPanel("Citation", citationUI("citation")),
   
   header = tags$div(
@@ -77,7 +62,6 @@ ui <- navbarPage(
       src = "modules/KNU.png",
       style = "height: 40px;"
     )
->>>>>>> ea65ec81e682dd872ed47baa0e0e1856b5045989
   )
 )
 # Define Server
@@ -86,15 +70,11 @@ server <- function(input, output, session) {
   pcaServer("pca")
   volcanoServer("volcano")
   heatmapServer("heatmap")
-<<<<<<< HEAD
-#  heatmaplyServer("heatmap")
-=======
-  deseqServer("DeSeq2")
+  deseqServer("DESeq2")
   correlationServer("correlation")
-  GenesyntenyServer("Genesynteny")
+#  GenesyntenyServer("Genesynteny")
   citationServer("citation")
   
->>>>>>> ea65ec81e682dd872ed47baa0e0e1856b5045989
 }
 options(shiny.maxRequestSize = 100 * 1024^2)
 

@@ -34,7 +34,7 @@ boxplotUI <- function(id) {
       sidebarPanel(
         textAreaInput(ns("matrix_input"), "Paste your matrix data (tab-separated):",
                       rows = 10, 
-                      placeholder = "A\tB\tC\tD\n1\t5\t4\t1\n2\t6\t4\t2\n1\t5\t4\t3\n2\t6\t3\t1\n3\t5\t4\t2\n1\t5\t3\t3\n2\t5\t4\t1"),
+                      placeholder = "dose\tlen\tsupp\n0.5\t4.2\tVC\n0.5\t11.5\tVC\n0.5\t7.3\tVC\n1\t16.5\tVC\n1\t16.5\tVC\n1\t15.2\tVC\n2\t19.7\tVC\n2\t23.3\tVC\n2\t23.6\tVC\n0.5\t15.2\tOJ\n0.5\t21.5\tOJ\n0.5\t17.6\tOJ\n1\t22.4\tOJ\n1\t25.8\tOJ\n1\t19.7\tOJ\n2\t28.5\tOJ\n2\t33.9\tOJ\n2\t30.9\tOJ"),
         div(class = "button-space",
             fluidRow(
               column(5, actionButton(ns("submit"), "Submit Data")),
@@ -64,6 +64,12 @@ boxplotUI <- function(id) {
         sliderInput(ns("fontSize"), "Font Size:", min = 6, max = 24, value = 12, step = 1),
         sliderInput(ns("plotWidth"), "Plot Width (pixels):", value = 400, min = 200, max = 2000, step = 10),
         sliderInput(ns("plotHeight"), "Plot Height (pixels):", value = 600, min = 200, max = 1500, step = 10),
+        selectInput(ns("export_format"), "Export Format:", 
+                    choices = c("PNG", "SVG", "PDF"), 
+                    selected = "PNG"),
+        numericInput(ns("dpi"), "DPI (for PNG only):", value = 300, min = 72, max = 600),
+        textInput(ns("filename"), "Export Filename:", value = "boxplot"),
+        downloadButton(ns("save_plot"), "Download Plot"),
         hr()
       ),
       mainPanel(
@@ -114,40 +120,48 @@ boxplotServer <- function(id, default_data = boxplot_default_data) {
     observeEvent(input$submit, {
       req(input$matrix_input)
       tryCatch({
-        # 1) fill=TRUE로 서로 다른 길이의 열을 받을 수 있도록 처리
+        # Read the data with proper column types
         matrix_data <- read.table(
           text = input$matrix_input,
           header = TRUE,
           sep = "\t",
-          stringsAsFactors = FALSE,
-          fill = TRUE
+          stringsAsFactors = TRUE,  # Convert character columns to factors
+          na.strings = c("NA", ""),  # Handle missing values
+          check.names = FALSE  # Preserve column names as is
         )
         
-        # 2) melt() 시 NA 데이터 제거
-        melted_data <- reshape2::melt(
-          matrix_data,
-          variable.name = "type",
-          value.name = "value",
-          na.rm = TRUE
-        )
+        # Ensure numeric columns are properly converted
+        for (col in names(matrix_data)) {
+          if (is.character(matrix_data[[col]])) {
+            # Try to convert to numeric if possible
+            num_col <- suppressWarnings(as.numeric(matrix_data[[col]]))
+            if (!all(is.na(num_col))) {
+              matrix_data[[col]] <- num_col
+            }
+          }
+        }
         
-        data(melted_data)
+        # Update the data
+        data(matrix_data)
         
-        x_var <- names(melted_data)[1]  # "type"
-        y_var <- names(melted_data)[2]  # "value"
+        # Update variable selections
+        updateSelectInput(session, "x_var", choices = names(matrix_data), selected = names(matrix_data)[1])
+        updateSelectInput(session, "y_var", choices = names(matrix_data), selected = names(matrix_data)[2])
         
-        updateSelectInput(session, "x_var", choices = names(melted_data), selected = x_var)
-        updateSelectInput(session, "y_var", choices = names(melted_data), selected = y_var)
+        # Update labels
+        updateTextInput(session, "xlab", value = names(matrix_data)[1])
+        updateTextInput(session, "ylab", value = names(matrix_data)[2])
         
-        updateTextInput(session, "xlab", value = x_var)
-        updateTextInput(session, "ylab", value = y_var)
+        # Update y-axis range
+        if (is.numeric(matrix_data[[names(matrix_data)[2]]])) {
+          y_min <- min(matrix_data[[names(matrix_data)[2]]], na.rm = TRUE) - 10
+          y_max <- max(matrix_data[[names(matrix_data)[2]]], na.rm = TRUE) + 10
+          updateNumericInput(session, "ymin", value = floor(y_min))
+          updateNumericInput(session, "ymax", value = ceiling(y_max))
+        }
         
-        y_min <- min(melted_data[[y_var]], na.rm = TRUE) - 10
-        y_max <- max(melted_data[[y_var]], na.rm = TRUE) + 10
-        updateNumericInput(session, "ymin", value = floor(y_min))
-        updateNumericInput(session, "ymax", value = ceiling(y_max))
-        
-        groups <- levels(as.factor(melted_data[[x_var]]))
+        # Update color palette
+        groups <- levels(as.factor(matrix_data[[names(matrix_data)[1]]]))
         color_palette(setNames(default_colors[1:length(groups)], groups))
         
       }, error = function(e) {
@@ -347,15 +361,47 @@ boxplotServer <- function(id, default_data = boxplot_default_data) {
     
     output$save_plot <- downloadHandler(
       filename = function() {
-        paste0(input$filename, ".png")
+        paste0(input$filename, ".", tolower(input$export_format))
       },
       content = function(file) {
-        ggsave(file,
-               plot = current_box_plot(),
-               device = "png",
-               width = input$plotWidth/as.numeric(input$dpi),
-               height = input$plotHeight/as.numeric(input$dpi),
-               dpi = as.numeric(input$dpi))
+        tryCatch({
+          if (is.null(current_box_plot())) {
+            stop("No plot available to save")
+          }
+          
+          # Ensure the plot is properly rendered
+          p <- current_box_plot()
+          
+          # Convert dimensions to inches (1 inch = 72 pixels)
+          width_inches <- input$plotWidth / 72
+          height_inches <- input$plotHeight / 72
+          
+          if (input$export_format == "PNG") {
+            ggsave(file,
+                   plot = p,
+                   device = "png",
+                   width = width_inches,
+                   height = height_inches,
+                   dpi = as.numeric(input$dpi),
+                   bg = "white")
+          } else if (input$export_format == "SVG") {
+            ggsave(file,
+                   plot = p,
+                   device = "svg",
+                   width = width_inches,
+                   height = height_inches,
+                   bg = "white")
+          } else if (input$export_format == "PDF") {
+            ggsave(file,
+                   plot = p,
+                   device = "pdf",
+                   width = width_inches,
+                   height = height_inches,
+                   bg = "white")
+          }
+        }, error = function(e) {
+          showNotification(paste("Error saving plot:", e$message), type = "error")
+        })
       }
     )
   })
