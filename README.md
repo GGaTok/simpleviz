@@ -39,7 +39,7 @@ SimpleViz is an R Shiny-based interactive data visualization tool designed for b
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/SimpleViz.git
+git clone https://github.com/yjcho2252/SimpleViz.git
 ```
 
 2. Install required R packages:
