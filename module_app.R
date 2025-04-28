@@ -23,13 +23,13 @@ library(plotly)
 library(heatmaply)
 
  # 모듈 파일 로드
-setwd("C:/R/SimpleViz")
+#setwd("C:/R/SimpleViz")
 # Load configuration and modules
 source("modules/boxplotModule.R")
 source("modules/pcaModule.R")
 source("modules/volcanoModule.R")
 source("modules/heatmapModule.R")
-source("modules/heatmapmodule_ploty.R")
+#source("modules/heatmapmodule_ploty.R")
 # Load some fonts
 font_add_google("Tinos", "Times New Roman")
 showtext_auto()
@@ -41,7 +41,7 @@ ui <- navbarPage(
   tabPanel("PCA Plot", pcaUI("pca")),
   tabPanel("Volcano Plot", volcanoUI("volcano")),
   tabPanel("Heatmap",heatmapUI("heatmap")),
-  tabPanel("Heatmap1",heatmaplyUI("heatmap")),
+#  tabPanel("Heatmap1",heatmaplyUI("heatmap")),
   tabPanel("Citation", 
            h3("About this app"),
            p("SimpleViz allows you to create box/violin/dot plots, volcano plot and PCA plot with statistical analysis.")
@@ -54,7 +54,7 @@ server <- function(input, output, session) {
   pcaServer("pca")
   volcanoServer("volcano")
   heatmapServer("heatmap")
-  heatmaplyServer("heatmap")
+#  heatmaplyServer("heatmap")
 }
 
 # Run the app
