@@ -1,10 +1,13 @@
-# Boxplot example data
+# modules/boxplotModule.R
+
+# 0. example dataset
 boxplot_default_data <- data.frame(
   dose = factor(c(0.5, 0.5, 0.5, 1, 1, 1, 2, 2, 2, 0.5, 0.5, 0.5, 1, 1, 1, 2, 2, 2)),
   len = c(4.2, 11.5, 7.3, 16.5, 16.5, 15.2, 19.7, 23.3, 23.6, 15.2, 21.5, 17.6, 22.4, 25.8, 19.7, 28.5, 33.9, 30.9),
   supp = factor(c('VC', 'VC', 'VC', 'VC', 'VC', 'VC', 'VC', 'VC', 'VC', 'OJ', 'OJ', 'OJ', 'OJ', 'OJ', 'OJ', 'OJ', 'OJ', 'OJ'))
 )
 
+# 1. UI
 boxplotUI <- function(id) {
   ns <- NS(id)
   tagList(
@@ -61,13 +64,7 @@ boxplotUI <- function(id) {
         sliderInput(ns("fontSize"), "Font Size:", min = 6, max = 24, value = 12, step = 1),
         sliderInput(ns("plotWidth"), "Plot Width (pixels):", value = 400, min = 200, max = 2000, step = 10),
         sliderInput(ns("plotHeight"), "Plot Height (pixels):", value = 600, min = 200, max = 1500, step = 10),
-        hr(),
-        h4("Save Plot"),
-        textInput(ns("filename"), "File name:", value = "my_plot"),
-        selectInput(ns("dpi"), "DPI:", 
-                    choices = c("72", "150", "300", "600"), 
-                    selected = "300"),
-        downloadButton(ns("save_plot"), "Save Plot as PNG") 
+        hr()
       ),
       mainPanel(
         uiOutput(ns("dynamic_output"))
@@ -76,7 +73,7 @@ boxplotUI <- function(id) {
   )
 }
 
-
+# 2. Server
 boxplotServer <- function(id, default_data = boxplot_default_data) {
   moduleServer(id, function(input, output, session) {
     
@@ -112,16 +109,32 @@ boxplotServer <- function(id, default_data = boxplot_default_data) {
         write.table(boxplot_default_data, file, sep = "\t", row.names = FALSE, quote = FALSE)
       }
     )
-    # Box plot: submit
+    
+    # **중요 수정 부분**: fill=TRUE 추가 & NA 제거 옵션 적용
     observeEvent(input$submit, {
       req(input$matrix_input)
       tryCatch({
-        matrix_data <- read.table(text = input$matrix_input, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-        melted_data <- melt(matrix_data, variable.name = "type", value.name = "value")
+        # 1) fill=TRUE로 서로 다른 길이의 열을 받을 수 있도록 처리
+        matrix_data <- read.table(
+          text = input$matrix_input,
+          header = TRUE,
+          sep = "\t",
+          stringsAsFactors = FALSE,
+          fill = TRUE
+        )
+        
+        # 2) melt() 시 NA 데이터 제거
+        melted_data <- reshape2::melt(
+          matrix_data,
+          variable.name = "type",
+          value.name = "value",
+          na.rm = TRUE
+        )
+        
         data(melted_data)
         
-        x_var <- names(melted_data)[1]
-        y_var <- names(melted_data)[2]
+        x_var <- names(melted_data)[1]  # "type"
+        y_var <- names(melted_data)[2]  # "value"
         
         updateSelectInput(session, "x_var", choices = names(melted_data), selected = x_var)
         updateSelectInput(session, "y_var", choices = names(melted_data), selected = y_var)

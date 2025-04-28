@@ -1,5 +1,6 @@
-# volcanoModule.R
-# Volcano Plot: example dataset
+# modules/volcanoModule.R
+
+# 0. example dataset
 set.seed(123)
 n_genes <- 1000
 log2FC <- seq(-5, 5, length.out = n_genes)
@@ -10,7 +11,7 @@ example_volcano_data <- data.frame(
   pvalue = pvalues,
   padj = p.adjust(pvalues, method = "BH")
 )
-# 1. UI 부분: volcanoUI()
+# 1. UI
 volcanoUI <- function(id) {
   # Shiny 모듈 Namespace 설정
   ns <- NS(id)
@@ -34,11 +35,11 @@ volcanoUI <- function(id) {
         textInput(ns("highlight_genes"), "Highlight genes (comma-separated)", "Gene_300,Gene_301"),
         
         sliderInput(ns("x.range"), "X-axis range:",
-                    min = -10, max = 10, value = c(-5, 5)),
+                    min = -20, max = 20, value = c(-5, 5)),
         sliderInput(ns("y.range"), "Y-axis range:",
                     min = 0, max = 310, value = c(0, 15)),
         sliderInput(ns("point_size"), "Data point size:",
-                    min = 0.1, max = 5, value = 1, step = 0.1),
+                    min = 0.1, max = 5, value = 2, step = 0.1),
         
         numericInput(ns("plot_width"), "Plot width (pixels):", 
                      value = 800, min = 400, max = 2000),
@@ -58,7 +59,7 @@ volcanoUI <- function(id) {
 }
 
 
-# 2. Server 부분: volcanoServer()
+# 2. Server
 volcanoServer <- function(id, exampleData=example_volcano_data) {
   moduleServer(
     id,
@@ -104,10 +105,10 @@ volcanoServer <- function(id, exampleData=example_volcano_data) {
         # 슬라이더 범위 업데이트
         updateSliderInput(session, "y.range", 
                           min = 0, max = 310, 
-                          value = c(0, max(15, ceiling(limits$y_max))))
+                          value = c(floor(limits$x_min), max(15,ceiling(limits$y_max))))
         
         updateSliderInput(session, "x.range", 
-                          min = -10, max = 10, 
+                          min = -20, max = 20, 
                           value = c(floor(limits$x_min), ceiling(limits$x_max)))
         
         if (is.null(input$volcano_file)) {
