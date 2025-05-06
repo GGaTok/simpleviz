@@ -2,19 +2,21 @@
 
 # 0. example dataset
 set.seed(123)
-n_samples <- 100
-n_features <- 20
+n_samples <- 30  # Reduced from 100
+n_features <- 10  # Reduced from 20
 n_groups <- 3
+
+# Generate example data
 generate_group_data <- function(n, features, mean, sd) {
   matrix(rnorm(n * features, mean = mean, sd = sd), nrow = n)
 }
 
-group1 <- generate_group_data(n_samples %/% 3, n_features, mean = 0, sd = 1)
-group2 <- generate_group_data(n_samples %/% 3, n_features, mean = 2, sd = 1.5)
-group3 <- generate_group_data(n_samples - 2 * (n_samples %/% 3), n_features, mean = -1, sd = 0.5)
+group1 <- generate_group_data(10, n_features, mean = 0, sd = 1)    # 10 samples
+group2 <- generate_group_data(10, n_features, mean = 2, sd = 1.5)  # 10 samples
+group3 <- generate_group_data(10, n_features, mean = -1, sd = 0.5) # 10 samples
 
 data <- rbind(group1, group2, group3)
-groups <- rep(paste0("Group", 1:n_groups), c(nrow(group1), nrow(group2), nrow(group3)))
+groups <- rep(paste0("Group", 1:n_groups), each = 10)
 colnames(data) <- paste0("Feature", 1:n_features)
 sample_names <- paste0("Sample", 1:nrow(data))
 example_pca_data <- data.frame(Sample = sample_names, Group = groups, data)
@@ -27,40 +29,40 @@ pcaUI <- function(id) {
     titlePanel("PCA Plot"),
     sidebarLayout(
       sidebarPanel(
-        # 파일 업로드
+        # File upload
         fileInput(ns("pca_file"), "Upload your TSV file",
                   accept = c("text/tab-separated-values", "text/plain", ".tsv", ".txt")),
         
-        # 예제 데이터 다운로드
+        # Example data download
         downloadButton(ns("downloadPCAData"), "Example Data"),
         
-        # PCA 축 선택
+        # PCA axis selection
         selectInput(ns("x_axis"), "X-axis:", choices = paste0("Dim", 1:5), selected = "Dim1"),
         selectInput(ns("y_axis"), "Y-axis:", choices = paste0("Dim", 1:5), selected = "Dim2"),
         
-        # 축 범위 설정
+        # Axis range settings
         sliderInput(ns("x_range"), "X-axis range:", min = -10, max = 10, 
                     value = c(-10, 10), step = 1),
         sliderInput(ns("y_range"), "Y-axis range:", min = -10, max = 10, 
                     value = c(-10, 10), step = 1),
         
-        # 포인트 크기 & 폰트 사이즈
+        # Point size & font size
         sliderInput(ns("point_size"), "Point Size:", min = 1, max = 5, value = 2, step = 0.5),
         sliderInput(ns("axis_font_size"), "Axis Font Size:", min = 8, max = 20, value = 12, step = 1),
         
-        # 타원 표시 여부
+        # Ellipse display option
         checkboxInput(ns("add_ellipse"), "Add ellipses", value = TRUE),
         selectInput(ns("ellipse_type"), "Ellipse Type:", 
                     choices = c("concentration", "convex"), selected = "concentration"),
         
-        # 포인트만 표시 / 텍스트 표시
+        # Show points only / Show text
         checkboxInput(ns("show_points"), "Show points without text", value = TRUE),
         
-        # Plot 크기
+        # Plot size
         sliderInput(ns("plot_width"), "Plot Width:", min = 400, max = 1200, value = 800, step = 50),
         sliderInput(ns("plot_height"), "Plot Height:", min = 300, max = 1000, value = 600, step = 50),
         
-        # 그룹별 색깔
+        # Group colors
         uiOutput(ns("color_pickers"))
       ),
       mainPanel(
@@ -79,40 +81,40 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
     function(input, output, session) {
       ns <- session$ns
       
-      # 업로드 / 예제 데이터 선택
+      # Upload / Example data selection
       pca_dataset <- reactive({
-        # 업로드된 파일이 없으면 예제 데이터 사용
+        # Use example data if no file is uploaded
         if (is.null(input$pca_file)) {
           return(examplePCAData)
         } else {
           df <- read.delim(input$pca_file$datapath, sep = "\t", header = TRUE, check.names = FALSE)
           
-          # 'Sample'과 'Group' 등 컬럼이 어떻게 들어오는지에 따라 전처리 로직을 조정하세요.
-          # 아래 예시는 pivot_longer -> pivot_wider 형태를 사용한 예시입니다.
+          # Adjust preprocessing logic based on how 'Sample' and 'Group' columns are input
+          # Below is an example using pivot_longer -> pivot_wider format
           
-          # 만약 업로드 파일이 이미 wide format(행=샘플, 열=Feature)이라면
-          # 이 과정을 생략하거나 필요에 맞게 수정해야 합니다.
+          # If the uploaded file is already in wide format (rows=samples, columns=features)
+          # Skip this process or modify as needed
           if (!all(c("Sample", "Group") %in% colnames(df))) {
-            # Sample/Group 컬럼이 없는 경우 처리 (단순 예시)
+            # Handle case without Sample/Group columns (simple example)
             return(df)
           }
           
-          # long -> wide 변환
+          # long -> wide conversion
           df_long <- df %>%
             pivot_longer(cols = -c(Sample, Group), names_to = "Variable", values_to = "Value") %>%
             pivot_wider(names_from = "Sample", values_from = "Value")
           
-          # 숫자 컬럼 변환
+          # Convert numeric columns
           df_long <- df_long %>%
             mutate(across(-(1:2), as.numeric))
           
-          # rownames를 임시 세팅 (옵션)
+          # Set temporary rownames (optional)
           rownames(df_long) <- seq_len(nrow(df_long))
           return(df_long)
         }
       })
       
-      # 그룹 이름 추출 후, 그룹별 색상 선택 UI
+      # Extract group names and create color selection UI for each group
       output$color_pickers <- renderUI({
         df <- pca_dataset()
         if (!"Group" %in% colnames(df)) return(NULL)
@@ -130,7 +132,7 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
         do.call(tagList, color_inputs)
       })
       
-      # 그룹별 팔레트 생성
+      # Create palette for each group
       selected_palette <- reactive({
         df <- pca_dataset()
         if (!"Group" %in% colnames(df)) return(NULL)
@@ -141,45 +143,46 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
         })
       })
       
-      # PCA 계산
+      # Calculate PCA
       pca_result <- reactive({
         df <- pca_dataset()
         
-        # Group, Variable 컬럼 제외한 나머지를 numeric 행렬로 사용
-        # (예제 데이터 구조에 따라 조정)
+        # Use remaining columns as numeric matrix, excluding Group and Variable columns
+        # (Adjust based on example data structure)
         numeric_cols <- setdiff(colnames(df), c("Sample", "Group", "Variable"))
         if (length(numeric_cols) < 2) return(NULL)
         
         X <- df[, numeric_cols, drop = FALSE]
-        X <- as.data.frame(lapply(X, as.numeric))  # 혹시 모를 문자형 변환
+        X <- as.data.frame(lapply(X, as.numeric))  # Convert any character types
         
         if (nrow(X) <= 1) return(NULL)
         
-        # PCA 계산 (FactoMineR)
+        # Calculate PCA (FactoMineR)
         PCA(X, scale.unit = TRUE, graph = FALSE)
       })
       
-      # 축 범위를 파일 업로드/축 변경 시 동적으로 업데이트
+      # Dynamically update axis ranges when file is uploaded/axis is changed
       observe({
         res.pca <- pca_result()
         if (is.null(res.pca)) return()
         
-        x_axis <- which(paste0("Dim", 1:10) == input$x_axis)  # 최대 10차원 가정
+        x_axis <- which(paste0("Dim", 1:10) == input$x_axis)  # Assume maximum 10 dimensions
         y_axis <- which(paste0("Dim", 1:10) == input$y_axis)
         
-        # PCA 좌표
+        # PCA coordinates
         coords <- res.pca$ind$coord
         if (ncol(coords) < max(x_axis, y_axis)) return()
         
         x_range <- range(coords[, x_axis])
         y_range <- range(coords[, y_axis])
         
-        x_padding <- diff(x_range) * 0.2
-        y_padding <- diff(y_range) * 0.2
+        # Increase padding for wider range
+        x_padding <- diff(x_range) * 0.3  # Increased from 0.2 to 0.3
+        y_padding <- diff(y_range) * 0.4  # Increased from 0.2 to 0.4
         x_range_initial <- x_range + c(-x_padding, x_padding)
         y_range_initial <- y_range + c(-y_padding, y_padding)
         
-        # 적절한 슬라이더 범위 설정
+        # Set appropriate slider ranges with wider limits
         x_min <- floor(x_range_initial[1])
         x_max <- ceiling(x_range_initial[2])
         y_min <- floor(y_range_initial[1])
@@ -202,15 +205,15 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
         x_axis <- which(paste0("Dim", 1:10) == input$x_axis)
         y_axis <- which(paste0("Dim", 1:10) == input$y_axis)
         
-        # fviz_pca_ind()에 전달할 인수 구성
+        # Configure arguments for fviz_pca_ind()
         p <- fviz_pca_ind(
           res.pca,
           title = "PCA Plot",
           repel = TRUE,
           axes = c(x_axis, y_axis),
           geom.ind = if (input$show_points) "point" else c("point", "text"),
-          col.ind = df$Group,          # 색상은 그룹별
-          palette = selected_palette(), # 사용자가 지정한 팔레트
+          col.ind = df$Group,          # Colors by group
+          palette = selected_palette(), # User-specified palette
           addEllipses = input$add_ellipse,
           ellipse.level = 0.9,
           legend.title = "Groups",
@@ -218,12 +221,12 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
           pointsize = input$point_size
         )
         
-        # ellipse 타입 지정 (concentration vs convex)
+        # Specify ellipse type (concentration vs convex)
         if (input$add_ellipse && input$ellipse_type == "convex") {
-          p$layers[[2]]$aes_params$linetype <- 2  # 예시: 타원 모양 바꾸기 등
+          p$layers[[2]]$aes_params$linetype <- 2  # Example: change ellipse shape etc.
         }
         
-        # x_range, y_range 설정
+        # Set x_range, y_range
         p <- p +
           theme(axis.line = element_line(color = "black"),
                 panel.border = element_blank(),
@@ -236,7 +239,7 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
         p
       }, width = function() input$plot_width, height = function() input$plot_height)
       
-      # PERMANOVA 결과
+      # PERMANOVA results
       output$permanova_result <- renderPrint({
         res.pca <- pca_result()
         df <- pca_dataset()
@@ -277,13 +280,14 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
         print(pairwise_result)
       })
       
-      # 예제 데이터 다운로드
+      # Example data download
       output$downloadPCAData <- downloadHandler(
         filename = function() {
           "example_pca_data.tsv"
         },
         content = function(file) {
-          write.table(examplePCAData, file, row.names = FALSE, sep = "\t", quote = FALSE)
+          # Use the embedded example data directly
+          write.table(example_pca_data, file, row.names = FALSE, sep = "\t", quote = FALSE)
         }
       )
       

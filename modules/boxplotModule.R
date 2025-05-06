@@ -119,7 +119,7 @@ boxplotServer <- function(id, default_data = boxplot_default_data) {
       }
     )
     
-    # **중요 수정 부분**: fill=TRUE 추가 & NA 제거 옵션 적용
+    # **Important modification**: Added fill=TRUE and NA removal option
     observeEvent(input$submit, {
       req(input$matrix_input)
       tryCatch({

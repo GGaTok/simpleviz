@@ -13,7 +13,7 @@ example_volcano_data <- data.frame(
 )
 # 1. UI
 volcanoUI <- function(id) {
-  # Shiny 모듈 Namespace 설정
+  # Set Shiny module Namespace
   ns <- NS(id)
   
   tagList(
@@ -64,19 +64,19 @@ volcanoServer <- function(id, exampleData=example_volcano_data) {
   moduleServer(
     id,
     function(input, output, session) {
-      # 모듈 내부 Namespace (ns) 할당
+      # Assign module internal Namespace (ns)
       ns <- session$ns
       
-      # Reactive: 업로드 파일 또는 예제 데이터
+      # Reactive: uploaded file or example data
       volcano_data <- reactive({
         if (is.null(input$volcano_file)) {
-          return(exampleData)    # 외부에서 주입한 예제 데이터
+          return(exampleData)    # Example data injected from outside
         } else {
           read.delim(input$volcano_file$datapath, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
         }
       })
       
-      # Dynamic axis 범위 계산
+      # Calculate dynamic axis ranges
       axis_limits <- reactive({
         data <- volcano_data()
         zero_present <- any(data$padj == 0, na.rm = TRUE)
@@ -84,7 +84,7 @@ volcanoServer <- function(id, exampleData=example_volcano_data) {
         if (zero_present) {
           y_max <- 310
         } else {
-          # padj가 0인 경우가 없다면 -log10(padj)의 최대
+          # If no padj is 0, use maximum of -log10(padj)
           y_max <- -log10(max(data$padj[data$padj > 0], na.rm = TRUE))
         }
         
@@ -93,16 +93,16 @@ volcanoServer <- function(id, exampleData=example_volcano_data) {
         list(y_max = y_max, x_min = x_min, x_max = x_max)
       })
       
-      # 업로드된 파일이 없는 경우 기본값 설정
+      # Set default values when no file is uploaded
       observe({
         limits <- axis_limits()
         
-        # 선택 가능한 컬럼 이름 설정
+        # Set selectable column names
         updateSelectInput(session, "x_col", choices = "log2FoldChange")
         updateSelectInput(session, "y_col", choices = c("padj", "pvalue"))
         updateSelectInput(session, "label_col", choices = "gene")
         
-        # 슬라이더 범위 업데이트
+        # Update slider ranges
         updateSliderInput(session, "y.range", 
                           min = 0, max = 310, 
                           value = c(floor(limits$x_min), max(15,ceiling(limits$y_max))))
@@ -118,11 +118,11 @@ volcanoServer <- function(id, exampleData=example_volcano_data) {
         }
       })
       
-      # Volcano Plot 그리기
+      # Draw Volcano Plot
       output$volcano_plot <- renderPlot({
         req(input$x_col, input$y_col, input$label_col)
         
-        # 하이라이트할 유전자 목록
+        # List of genes to highlight
         highlight_genes <- unlist(strsplit(input$highlight_genes, ","))
         highlight_genes <- trimws(highlight_genes)
         
@@ -149,7 +149,7 @@ volcanoServer <- function(id, exampleData=example_volcano_data) {
                 panel.grid.minor = element_blank())
       }, width = function() input$plot_width, height = function() input$plot_height)
       
-      # 예제 데이터 다운로드
+      # Example data download
       output$download_example <- downloadHandler(
         filename = function() {
           "example_volcano_data.tsv"
