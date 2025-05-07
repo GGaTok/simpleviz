@@ -95,7 +95,6 @@ boxplotServer <- function(id, default_data = boxplot_default_data) {
     output$dynamic_output <- renderUI({
       tagList(
         plotOutput(session$ns("plot"), width = "100%", height = paste0(input$plotHeight, "px")),
-        htmlOutput(session$ns("save_message")),
         verbatimTextOutput(session$ns("ttest_results"))
       )
     })
@@ -318,10 +317,6 @@ boxplotServer <- function(id, default_data = boxplot_default_data) {
       current_box_plot(p)
       p
     }, width = function() input$plotWidth, height = function() input$plotHeight)
-    
-    output$save_message <- renderUI({
-      HTML("<p style='text-align: center; color: #666; font-style: italic;'>Right-click on the plot and select 'Save image as...' to download the plot as an image file.</p>")
-    })
     
     output$ttest_results <- renderPrint({
       req(data(), input$x_var, input$y_var, input$stat_method)

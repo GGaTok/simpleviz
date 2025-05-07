@@ -43,25 +43,32 @@ showtext_auto()
 addResourcePath("modules", "modules")
 
 # Define UI
-ui <- navbarPage(
-  title = "SimpleViz",
-  
-  # Tabs
-  tabPanel("Box/Violin/Dot Plot", boxplotUI("boxplot")),
-  tabPanel("PCA Plot", pcaUI("pca")),
-  tabPanel("Volcano Plot", volcanoUI("volcano")),
-  tabPanel("Heatmap", heatmapUI("heatmap")),
-  tabPanel("DESeq2", deseqUI("DESeq2")),
-  tabPanel("Correlation matrix",correlationUI("correlation")),
-#  tabPanel("Genesynteny",GenesyntenyUI("Genesynteny")),
-  tabPanel("Citation", citationUI("citation")),
-  
-  header = tags$div(
-    style = "position: absolute;right:-100px; top: -50px; padding: 100px;",
-    tags$img(
-      src = "modules/KNU.png",
-      style = "height: 40px;"
-    )
+ui <- fluidPage(
+  tags$head(
+    tags$style(HTML("
+      .logo-container {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+      }
+    "))
+  ),
+  navbarPage(
+    title = "SimpleViz",
+    
+    # Tabs
+    tabPanel("Box/Violin/Dot Plot", boxplotUI("boxplot")),
+    tabPanel("PCA Plot", pcaUI("pca")),
+    tabPanel("Volcano Plot", volcanoUI("volcano")),
+    tabPanel("Heatmap", heatmapUI("heatmap")),
+    tabPanel("DESeq2", deseqUI("DESeq2")),
+    tabPanel("Correlation matrix",correlationUI("correlation")),
+#    tabPanel("Genesynteny",GenesyntenyUI("Genesynteny")),
+    tabPanel("Citation", citationUI("citation"))
+  ),
+  div(class = "logo-container",
+      img(src = "modules/KNU.png", height = "40px")
   )
 )
 # Define Server
