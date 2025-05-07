@@ -1,8 +1,8 @@
-250506 : Facet function was added in boxplot. The annotations in codes were translated to English. Example file in PCA plot was corrected.
-250428 : SVG download feature was added and various buges were fixed.
-250403 : Heatmap, Correlation Module were edited.
-250210 : DESeq2 download format was edited. In the case of the box plot function, even if the number of elements in each sample differs, you can still generate the plot and perform a t-test.
-250124 : X-axis of volcano plot was updated and DESeq2 download formats were updated.
-250106 : Correlation matrix was added.
-250103 : Logo was added.
-241231 : Citation was added.
+2025-05-06 : Added facet function to boxplot. Translated code annotations to English. Corrected example file in PCA plot.
+2025-04-28 : Added SVG download feature and fixed various bugs.
+2025-04-03 : Updated Heatmap and Correlation modules.
+2025-02-10 : Modified DESeq2 download format. Enhanced box plot function to handle samples with different numbers of elements and perform t-test.
+2025-01-24 : Updated volcano plot x-axis and DESeq2 download formats.
+2025-01-06 : Added Correlation matrix feature.
+2025-01-03 : Added logo.
+2024-12-31 : Added Citation feature.

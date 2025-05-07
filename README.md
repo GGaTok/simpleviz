@@ -2,6 +2,10 @@
 
 SimpleViz is an R Shiny-based interactive data visualization tool designed for biological and medical data analysis. It provides a user-friendly interface for various statistical and visualization methods commonly used in research.
 
+## Live Demo
+
+You can access the live version of SimpleViz at: https://mglab.shinyapps.io/simpleviz/
+
 ## Features
 
 ### 1. Box/Violin/Dot Plot Module
