@@ -268,7 +268,7 @@ deseqServer <- function(id) {
           pageLength = 10,
           scrollX = TRUE,
           dom = 'Bfrtip',
-          buttons = c('copy', 'csv', 'excel')
+          buttons = c('tsv', 'excel')
         ),
         extensions = 'Buttons'
       )
