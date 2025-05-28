@@ -77,7 +77,8 @@ This project is licensed under the terms specified in the LICENSE file.
 ## Citation
 
 If you use SimpleViz in your research, please cite:
-[Citation information will be added]
+SimpleViz: A user-friendly, web-based tool for publication-ready data visualization in bioinformatics
+https://doi.org/10.1016/j.mocell.2025.100222
 
 ## Contact
 

@@ -230,6 +230,15 @@ deseqServer <- function(id) {
       cData <- countData()
       mData <- makeMetaData()
       
+      # Filter out unassigned samples
+      valid_samples <- rownames(mData)[mData$condition != "Unassigned"]
+      cData <- cData[, valid_samples, drop = FALSE]
+      mData <- mData[valid_samples, , drop = FALSE]
+      
+      # Convert condition to factor with user-specified levels
+      mData$condition <- factor(mData$condition, 
+                              levels = c(input$group1_name, input$group2_name))
+      
       dds_obj <- DESeqDataSetFromMatrix(
         countData = cData,
         colData   = mData,
