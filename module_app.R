@@ -26,8 +26,8 @@ library(gggenes)
 library(rtracklayer)
 library(tools)
 library(svglite)
-
-
+library(ANCOMBC)
+library(phyloseq)
 # Load configuration and modules
 source("modules/boxplotModule.R")
 source("modules/pcaModule.R")
@@ -36,6 +36,7 @@ source("modules/heatmapModule.R")
 source("modules/deseqModule.R")
 source("modules/citationModule.R")
 source("modules/correlationModule.R")
+source("modules/ancombc2Module.R")
 #source("modules/GenesyntenyModule.R")
 # Load some fonts
 font_add_google("Tinos", "Times New Roman")
@@ -54,6 +55,7 @@ ui <- navbarPage(
   tabPanel("DESeq2", deseqUI("DESeq2")),
   tabPanel("Correlation matrix",correlationUI("correlation")),
 #  tabPanel("Genesynteny",GenesyntenyUI("Genesynteny")),
+  tabPanel("Ancombc2",ancombc2UI("ancombc2")),
   tabPanel("Citation", citationUI("citation")),
   
   header = tags$div(
@@ -72,6 +74,7 @@ server <- function(input, output, session) {
   heatmapServer("heatmap")
   deseqServer("DESeq2")
   correlationServer("correlation")
+  ancombc2Server("ancombc2")  
 #  GenesyntenyServer("Genesynteny")
   citationServer("citation")
   
