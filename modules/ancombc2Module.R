@@ -52,7 +52,7 @@ ancombc2UI <- function(id) {
                      class = "btn-primary", width = "100%"),
         hr(),
         
-        downloadButton(ns("dl"),    "Summary result CSV"),
+        downloadButton(ns("dl"),    "Summary result TSV"),
         downloadButton(ns("dl_de"), "DEG-like TSV")
       ),
       
@@ -62,7 +62,7 @@ ancombc2UI <- function(id) {
         br(),
         tags$div(
           style = "font-size:0.9em; line-height:1.4;",
-          tags$strong("raw description"),
+          tags$strong("row column"),
           tags$ul(
             tags$li(tags$code("Contrast"), " : Comparison group name (e.g., GroupTreatment)"),
             tags$li(tags$code("Beta"),     " : Log2 fold-change estimate"),
@@ -206,7 +206,7 @@ ancombc2Server <- function(id) {
     })
     
     output$dl_de <- downloadHandler(
-      filename = function() paste0("ancombc2_DEstyle_", Sys.Date(), ".tsv"),
+      filename = function() paste0("ancombc2_summary_result_", Sys.Date(), ".tsv"),
       content  = function(f) readr::write_tsv(de_df(), f)
     )
   })

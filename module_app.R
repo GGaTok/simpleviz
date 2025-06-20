@@ -28,8 +28,12 @@ library(tools)
 library(svglite)
 library(ANCOMBC)
 library(phyloseq)
+library(DirichletMultinomial)
+library(tidytext)
+
 # Load configuration and modules
 source("modules/boxplotModule.R")
+source("modules/dmmModule.R")
 source("modules/pcaModule.R")
 source("modules/volcanoModule.R")
 source("modules/heatmapModule.R")
@@ -37,6 +41,7 @@ source("modules/deseqModule.R")
 source("modules/citationModule.R")
 source("modules/correlationModule.R")
 source("modules/ancombc2Module.R")
+#source("modules/snpModule.R")
 #source("modules/GenesyntenyModule.R")
 # Load some fonts
 font_add_google("Tinos", "Times New Roman")
@@ -56,6 +61,8 @@ ui <- navbarPage(
   tabPanel("Correlation matrix",correlationUI("correlation")),
 #  tabPanel("Genesynteny",GenesyntenyUI("Genesynteny")),
   tabPanel("Ancombc2",ancombc2UI("ancombc2")),
+  tabPanel("DMM Clustering",dmmUI("dmm")),
+#  tabPanel("SNP Finder", snpUI("snp")),
   tabPanel("Citation", citationUI("citation")),
   
   header = tags$div(
@@ -74,7 +81,9 @@ server <- function(input, output, session) {
   heatmapServer("heatmap")
   deseqServer("DESeq2")
   correlationServer("correlation")
-  ancombc2Server("ancombc2")  
+  ancombc2Server("ancombc2")
+  dmmServer("dmm")
+#  snpServer("snp") 
 #  GenesyntenyServer("Genesynteny")
   citationServer("citation")
   
@@ -83,4 +92,3 @@ options(shiny.maxRequestSize = 100 * 1024^2)
 
 # Run the app
 shinyApp(ui, server)
-
