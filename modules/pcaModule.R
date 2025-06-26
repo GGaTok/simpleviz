@@ -176,13 +176,21 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
         x_max <- ceiling(x_range_initial[2])
         y_min <- floor(y_range_initial[1])
         y_max <- ceiling(y_range_initial[2])
-        
+
+        slider_x_min <- x_min - 5
+        slider_x_max <- x_max + 5
+        slider_x_value <- c(max(x_min, slider_x_min), min(x_max, slider_x_max))
+
+        slider_y_min <- y_min - 5
+        slider_y_max <- y_max + 5
+        slider_y_value <- c(max(y_min, slider_y_min), min(y_max, slider_y_max))
+
         updateSliderInput(session, "x_range", 
-                          min = x_min - 5, max = x_max + 5, 
-                          value = c(x_min, x_max))
+                          min = slider_x_min, max = slider_x_max, 
+                          value = slider_x_value)
         updateSliderInput(session, "y_range", 
-                          min = y_min - 5, max = y_max + 5, 
-                          value = c(y_min, y_max))
+                          min = slider_y_min, max = slider_y_max, 
+                          value = slider_y_value)
       })
       
       # PCA/NMDS Plot
