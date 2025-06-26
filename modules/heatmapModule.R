@@ -38,7 +38,7 @@ heatmapUI <- function(id) {
       sidebarPanel(
         position = "left",
         
-        # (1) 탭 구분 텍스트 입력
+        # (1) Tab-separated text input
         textAreaInput(ns("matrix_input"), "Paste your matrix data (tab-separated):",
                       rows = 10,
                       placeholder = "gene\tSample1\tSample2\tSample3\nGene1\t2.875\t0.455\t9.563\nGene2\t7.883\t5.281\t4.533\nGene3\t4.089\t8.924\t6.775\nGene4\t8.830\t5.514\t5.726\nGene5\t9.404\t4.566\t1.029"),
@@ -52,13 +52,13 @@ heatmapUI <- function(id) {
             )
         ),
         
-        # (2,3) 파일 업로드
+        # (2,3) File upload
         fileInput(ns("heatmap_file"), "Upload your TSV file",
                   accept = c("text/tab-separated-values", 
                              "text/plain", ".tsv", ".txt")),
         hr(),
         
-        # (4) 히트맵 파라미터 설정
+        # (4) Heatmap parameter settings
         selectInput(ns("scale_option"), "Scale:", 
                     choices = c("none", "row", "column"), 
                     selected = "none"),
@@ -81,11 +81,11 @@ heatmapUI <- function(id) {
 #        sliderInput(ns("num_colors"), "Number of Colors:", 
 #                    min = 3, max = 100, value = 9),
         
-        # **폰트 크기 설정 (추가)**
+        # **Font size settings (added)**
         sliderInput(ns("font_size"), "Font Size:",
                     min = 5, max = 20, value = 10, step = 1),
         
-        # (5) 플롯 크기 설정
+        # (5) Plot size settings
         sliderInput(ns("plot_width"), "Plot Width:", 
                     min = 400, max = 1200, value = 700, step = 50),
         sliderInput(ns("plot_height"), "Plot Height:", 
@@ -106,17 +106,17 @@ heatmapServer <- function(id, exampleHeatmapData = mat_data, exampleAnnotation =
     function(input, output, session) {
       ns <- session$ns
       
-      # (A) 사용자가 텍스트 영역에 입력한 데이터를 저장할 reactiveVal
+      # (A) reactiveVal to store data entered by user in text area
       parsed_text_data <- reactiveVal(NULL)
       
-      # (B) Submit Data 버튼을 누르면 텍스트 영역의 데이터를 파싱하여 저장
+      # (B) Parse and store data from text area when Submit Data button is clicked
       observeEvent(input$submit, {
         req(input$matrix_input)
         
-        # 텍스트 영역에서 문자열 읽어오기
+        # Read string from text area
         data_lines <- strsplit(input$matrix_input, "\n")[[1]]
         
-        # 탭 구분으로 테이블 파싱
+        # Parse table with tab separator
         df <- read.table(
           textConnection(data_lines),
           sep = "\t", 
@@ -124,22 +124,22 @@ heatmapServer <- function(id, exampleHeatmapData = mat_data, exampleAnnotation =
           check.names = FALSE
         )
         
-        # 첫 열이 유전자명(행 이름), 나머지는 샘플 값
+        # First column is gene names (row names), rest are sample values
         mat <- as.matrix(df[,-1])
         rownames(mat) <- df[[1]]
         
-        # parsed_text_data에 할당
+        # Assign to parsed_text_data
         parsed_text_data(mat)
       })
       
       
-      # (C) 실제로 히트맵에 쓸 데이터를 반환하는 reactive
+      # (C) reactive that returns data to be used in heatmap
       heatmap_data <- reactive({
-        # 1. 텍스트 입력을 통해 파싱된 데이터가 있으면 우선 사용
+        # 1. Use parsed data from text input if available
         if(!is.null(parsed_text_data())) {
           return(parsed_text_data())
         }
-        # 2. 파일 업로드가 된 경우
+        # 2. If file is uploaded
         else if (!is.null(input$heatmap_file)) {
           df <- read.delim(
             input$heatmap_file$datapath, 
@@ -151,36 +151,36 @@ heatmapServer <- function(id, exampleHeatmapData = mat_data, exampleAnnotation =
           rownames(mat) <- df[[1]]
           return(mat)
         }
-        # 3. 그 외에는 예제 데이터 사용
+        # 3. Otherwise use example data
         else {
           return(exampleHeatmapData)
         }
       })
       
-      # (D) Heatmap Plot 생성
+      # (D) Create Heatmap Plot
       output$heatmap_plot <- renderPlot({
         req(heatmap_data())
         mat <- heatmap_data()
         
-        # 색상 팔레트 생성
+        # Create color palette
         pal_name <- input$color_palette
         pal_size <- 100
         
-        # RColorBrewer 여부에 따른 팔레트 설정
+        # Set palette based on whether it's RColorBrewer
         if (pal_name %in% rownames(brewer.pal.info)) {
-          # RColorBrewer 팔레트
+          # RColorBrewer palette
           colors <- colorRampPalette(brewer.pal(min(pal_size, 9), pal_name))(pal_size)
         } else {
-          # heat.colors 등 base R 팔레트
+          # base R palettes like heat.colors
           if (pal_name == "heat.colors") {
             colors <- heat.colors(pal_size)
           } else {
-            # 기타 예외처리 (혹은 고정 RdBu 등)
+            # Other exception handling (or fixed RdBu etc.)
             colors <- colorRampPalette(brewer.pal(9, "RdBu"))(pal_size)
           }
         }
         
-        # annotation_col (옵션)
+        # annotation_col (optional)
         annotation_col <- exampleAnnotation
         if (!is.null(exampleAnnotation) && nrow(exampleAnnotation) == ncol(mat)) {
           rownames(annotation_col) <- colnames(mat)
@@ -188,7 +188,7 @@ heatmapServer <- function(id, exampleHeatmapData = mat_data, exampleAnnotation =
           annotation_col <- NA
         }
         
-        # pheatmap 실행
+        # Run pheatmap
         pheatmap(
           mat,
           scale = input$scale_option,               
@@ -207,7 +207,7 @@ heatmapServer <- function(id, exampleHeatmapData = mat_data, exampleAnnotation =
       }, width = function() input$plot_width, height = function() input$plot_height)
       
       
-      # (E) 예제 데이터 다운로드
+      # (E) Example data download
       output$download_example <- downloadHandler(
         filename = function() {
           "example_heatmap_data.tsv"

@@ -230,6 +230,15 @@ deseqServer <- function(id) {
       cData <- countData()
       mData <- makeMetaData()
       
+      # Filter out unassigned samples
+      valid_samples <- rownames(mData)[mData$condition != "Unassigned"]
+      cData <- cData[, valid_samples, drop = FALSE]
+      mData <- mData[valid_samples, , drop = FALSE]
+      
+      # Convert condition to factor with user-specified levels
+      mData$condition <- factor(mData$condition, 
+                              levels = c(input$group1_name, input$group2_name))
+      
       dds_obj <- DESeqDataSetFromMatrix(
         countData = cData,
         colData   = mData,
@@ -249,75 +258,49 @@ deseqServer <- function(id) {
       resdf$gene <- rownames(resdf)
       
       # 2) Normalized Counts
-      normCounts <- counts(dds(), normalized=TRUE)
-      normCountsDF <- as.data.frame(normCounts)
-      normCountsDF$gene <- rownames(normCountsDF)
+      norm_counts <- counts(dds(), normalized = TRUE)
+      norm_df <- as.data.frame(norm_counts)
+      norm_df$gene <- rownames(norm_df)
       
-      # 3) Merge based on row names (or merge)
-      #    Here we use merge based on gene column
-      merged_df <- merge(resdf, normCountsDF, by = "gene", all.x = TRUE)
-      
-      # 4) Move gene column to the front and adjust the order of the rest
-      #    DESeq2 results (default columns) + normalized counts order by sample
-      #    resdf default columns: "gene", "baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj"
-      #    normCountsDF: gene excluded, Sample columns
-      deg_cols <- c("gene","baseMean","log2FoldChange","lfcSE","stat","pvalue","padj")
-      sample_cols <- setdiff(colnames(normCountsDF), "gene")
-      
-      # colnames(merged_df) is ["gene","baseMean","log2FoldChange","lfcSE","stat","pvalue","padj",
-      #                        "Sample1","Sample2","..."] (order not guaranteed)
-      # Therefore, reorder to deg_cols + sample_cols order
-      merged_df <- merged_df[, c(deg_cols, sample_cols)]
-      
-      merged_df
+      # 3) Merge
+      merged <- merge(resdf, norm_df, by = "gene", all = TRUE)
+      merged <- merged[order(merged$padj), ]
+      merged
     })
     
-    # --- (2) DT Output ---
+    # --- (2) Display Results Table ---
     output$deseq_table <- renderDT({
       req(deseq_results_with_norm())
       datatable(
         deseq_results_with_norm(),
-        options = list(pageLength = 10, scrollX = TRUE),
-        rownames = FALSE
+        options = list(
+          pageLength = 10,
+          scrollX = TRUE,
+          dom = 'Bfrtip',
+          buttons = c('tsv', 'excel')
+        ),
+        extensions = 'Buttons'
       )
     })
     
-    # --- (3) Download ---
-    output$download_deseq_res <- downloadHandler(
-      filename = function() {
-        paste0("deseq_results_with_norm_", Sys.Date(), ".tsv")
-      },
-      content = function(file) {
-        df_out <- deseq_results_with_norm()
-        write.table(
-          df_out,
-          file,
-          sep = "\t",
-          row.names = FALSE,
-          quote = FALSE
-        )
-      }
-    )
-    
-    # (I) Add Example Data Download
+    # --- (3) Download Example Count Data ---
     output$download_ex_counts <- downloadHandler(
       filename = function() {
-        paste0("example_counts_", Sys.Date(), ".tsv")
+        "example_count_data.tsv"
       },
       content = function(file) {
-        # (1) Convert row names to a new column 'Geneid'
-        df_out <- data.frame(Geneid = rownames(ex_counts), ex_counts)
-        
-        # (2) Save to file (first column is "Geneid")
-        write.table(
-          df_out,
-          file,
-          sep = "\t",
-          row.names = FALSE,  # No separate row names
-          quote = FALSE
-        )
+        write.table(ex_counts, file, sep = "\t", quote = FALSE)
       }
     )
     
+    # --- (4) Download DESeq2 Results ---
+    output$download_deseq_res <- downloadHandler(
+      filename = function() {
+        "deseq2_results.tsv"
+      },
+      content = function(file) {
+        write.table(deseq_results_with_norm(), file, sep = "\t", quote = FALSE, row.names = FALSE)
+      }
+    )
   })
 }

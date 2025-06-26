@@ -46,6 +46,9 @@ boxplotUI <- function(id) {
                     selected = "Box Plot"),
         selectInput(ns("x_var"), "Select X-axis Variable:", choices = names(boxplot_default_data), selected = "dose"),
         selectInput(ns("y_var"), "Select Y-axis Variable:", choices = names(boxplot_default_data), selected = "len"),
+        selectInput(ns("facet_var"), "Select Facet Variable (Optional):", 
+                   choices = c("None", names(boxplot_default_data)), 
+                   selected = "None"),
         numericInput(ns("ymin"), "Y-axis minimum:", value = 0),
         numericInput(ns("ymax"), "Y-axis maximum:", value = 50),
         textInput(ns("xlab"), "X-axis Label:", value = "Dose"),
@@ -92,7 +95,6 @@ boxplotServer <- function(id, default_data = boxplot_default_data) {
     output$dynamic_output <- renderUI({
       tagList(
         plotOutput(session$ns("plot"), width = "100%", height = paste0(input$plotHeight, "px")),
-        htmlOutput(session$ns("save_message")),
         verbatimTextOutput(session$ns("ttest_results"))
       )
     })
@@ -116,7 +118,7 @@ boxplotServer <- function(id, default_data = boxplot_default_data) {
       }
     )
     
-    # **중요 수정 부분**: fill=TRUE 추가 & NA 제거 옵션 적용
+    # **Important modification**: Added fill=TRUE and NA removal option
     observeEvent(input$submit, {
       req(input$matrix_input)
       tryCatch({
@@ -231,6 +233,7 @@ boxplotServer <- function(id, default_data = boxplot_default_data) {
         data = data_plot,
         x_var = input$x_var,
         y_var = input$y_var,
+        facet_var = input$facet_var,
         plot_type = input$plot_type,
         groups = groups,
         colors = color_palette() %||% setNames(default_colors[1:length(groups)], groups)
@@ -305,14 +308,15 @@ boxplotServer <- function(id, default_data = boxplot_default_data) {
                                       method = input$stat_method)
         }
       }
-      current_box_plot(p)
       
+      # Add facet if facet variable is selected
+      if (plot_info$facet_var != "None") {
+        p <- p + facet_wrap(as.formula(paste("~", plot_info$facet_var)))
+      }
+      
+      current_box_plot(p)
       p
     }, width = function() input$plotWidth, height = function() input$plotHeight)
-    
-    output$save_message <- renderUI({
-      HTML("<p style='text-align: center; color: #666; font-style: italic;'>Right-click on the plot and select 'Save image as...' to download the plot as an image file.</p>")
-    })
     
     output$ttest_results <- renderPrint({
       req(data(), input$x_var, input$y_var, input$stat_method)
