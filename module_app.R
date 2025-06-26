@@ -54,7 +54,7 @@ ui <- navbarPage(
   
   # Tabs
   tabPanel("Box/Violin/Dot Plot", boxplotUI("boxplot")),
-  tabPanel("PCA Plot", pcaUI("pca")),
+  tabPanel("Ordination Plot", pcaUI("pca")),
   tabPanel("Volcano Plot", volcanoUI("volcano")),
   tabPanel("Heatmap", heatmapUI("heatmap")),
   tabPanel("DESeq2", deseqUI("DESeq2")),

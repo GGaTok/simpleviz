@@ -36,6 +36,9 @@ pcaUI <- function(id) {
         # Example data download
         downloadButton(ns("downloadPCAData"), "Example Data"),
         
+        # Analysis method (PCA/NMDS)
+        radioButtons(ns("analysis_method"), "Analysis method:", choices = c("PCA", "NMDS"), selected = "PCA"),
+        
         # PCA axis selection
         selectInput(ns("x_axis"), "X-axis:", choices = paste0("Dim", 1:5), selected = "Dim1"),
         selectInput(ns("y_axis"), "Y-axis:", choices = paste0("Dim", 1:5), selected = "Dim2"),
@@ -63,7 +66,8 @@ pcaUI <- function(id) {
         sliderInput(ns("plot_height"), "Plot Height:", min = 300, max = 1000, value = 600, step = 50),
         
         # Group colors
-        uiOutput(ns("color_pickers"))
+        uiOutput(ns("color_pickers")),
+        
       ),
       mainPanel(
         plotOutput(ns("pca_plot"), width = "100%", height = "auto"),
@@ -88,29 +92,32 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
           return(examplePCAData)
         } else {
           df <- read.delim(input$pca_file$datapath, sep = "\t", header = TRUE, check.names = FALSE)
-          
-          # Adjust preprocessing logic based on how 'Sample' and 'Group' columns are input
-          # Below is an example using pivot_longer -> pivot_wider format
-          
-          # If the uploaded file is already in wide format (rows=samples, columns=features)
-          # Skip this process or modify as needed
-          if (!all(c("Sample", "Group") %in% colnames(df))) {
-            # Handle case without Sample/Group columns (simple example)
+          # If 'Cluster' column exists, rename it to 'Group'
+          if ("Cluster" %in% colnames(df)) {
+            colnames(df)[colnames(df) == "Cluster"] <- "Group"
+          }
+          # If both Sample and Group columns exist, return as is (wide format)
+          if (all(c("Sample", "Group") %in% colnames(df))) {
             return(df)
           }
-          
-          # long -> wide conversion
-          df_long <- df %>%
-            pivot_longer(cols = -c(Sample, Group), names_to = "Variable", values_to = "Value") %>%
-            pivot_wider(names_from = "Sample", values_from = "Value")
-          
-          # Convert numeric columns
-          df_long <- df_long %>%
-            mutate(across(-(1:2), as.numeric))
-          
-          # Set temporary rownames (optional)
-          rownames(df_long) <- seq_len(nrow(df_long))
-          return(df_long)
+          # Remove OTUs (columns) with total sum 0
+          X <- df[, setdiff(colnames(df), "Group"), drop = FALSE]
+          X <- as.data.frame(lapply(X, as.numeric))
+          X[X < 0] <- 0  # Set all negative values to 0 for all analyses
+          # Calculate analysis result (PCA or NMDS)
+          if (input$analysis_method == "PCA") {
+            res <- PCA(X, scale.unit = TRUE, graph = FALSE)
+            return(list(type = "PCA", result = res, X = X))
+          } else {
+            res <- tryCatch({
+              metaMDS(X, distance = "bray", k = 2, trymax = 300)
+            }, error = function(e) NULL)
+            if (is.null(res) || is.null(res$points)) {
+              return(list(type = "NMDS", result = NULL, X = X))
+            } else {
+              return(list(type = "NMDS", result = res, X = X))
+            }
+          }
         }
       })
       
@@ -143,34 +150,16 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
         })
       })
       
-      # Calculate PCA
-      pca_result <- reactive({
-        df <- pca_dataset()
-        
-        # Use remaining columns as numeric matrix, excluding Group and Variable columns
-        # (Adjust based on example data structure)
-        numeric_cols <- setdiff(colnames(df), c("Sample", "Group", "Variable"))
-        if (length(numeric_cols) < 2) return(NULL)
-        
-        X <- df[, numeric_cols, drop = FALSE]
-        X <- as.data.frame(lapply(X, as.numeric))  # Convert any character types
-        
-        if (nrow(X) <= 1) return(NULL)
-        
-        # Calculate PCA (FactoMineR)
-        PCA(X, scale.unit = TRUE, graph = FALSE)
-      })
-      
       # Dynamically update axis ranges when file is uploaded/axis is changed
       observe({
-        res.pca <- pca_result()
-        if (is.null(res.pca)) return()
+        res <- pca_dataset()
+        if (is.null(res)) return()
         
         x_axis <- which(paste0("Dim", 1:10) == input$x_axis)  # Assume maximum 10 dimensions
         y_axis <- which(paste0("Dim", 1:10) == input$y_axis)
         
         # PCA coordinates
-        coords <- res.pca$ind$coord
+        coords <- res$result$ind$coord
         if (ncol(coords) < max(x_axis, y_axis)) return()
         
         x_range <- range(coords[, x_axis])
@@ -196,65 +185,72 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
                           value = c(y_min, y_max))
       })
       
-      # PCA Plot
+      # PCA/NMDS Plot
       output$pca_plot <- renderPlot({
-        res.pca <- pca_result()
         df <- pca_dataset()
-        if (is.null(res.pca) || !"Group" %in% colnames(df)) return()
-        
-        x_axis <- which(paste0("Dim", 1:10) == input$x_axis)
-        y_axis <- which(paste0("Dim", 1:10) == input$y_axis)
-        
-        # Configure arguments for fviz_pca_ind()
-        p <- fviz_pca_ind(
-          res.pca,
-          title = "PCA Plot",
-          repel = TRUE,
-          axes = c(x_axis, y_axis),
-          geom.ind = if (input$show_points) "point" else c("point", "text"),
-          col.ind = df$Group,          # Colors by group
-          palette = selected_palette(), # User-specified palette
-          addEllipses = input$add_ellipse,
-          ellipse.level = 0.9,
-          legend.title = "Groups",
-          mean.point = FALSE,
-          pointsize = input$point_size
-        )
-        
-        # Specify ellipse type (concentration vs convex)
-        if (input$add_ellipse && input$ellipse_type == "convex") {
-          p$layers[[2]]$aes_params$linetype <- 2  # Example: change ellipse shape etc.
+        res <- pca_dataset()
+        if (is.null(res) || !"Group" %in% colnames(df)) return()
+        if (res$type == "PCA") {
+          x_axis <- which(paste0("Dim", 1:10) == input$x_axis)
+          y_axis <- which(paste0("Dim", 1:10) == input$y_axis)
+          p <- fviz_pca_ind(
+            res$result,
+            title = "PCA Plot",
+            repel = TRUE,
+            axes = c(x_axis, y_axis),
+            geom.ind = if (input$show_points) "point" else c("point", "text"),
+            col.ind = df$Group,
+            palette = selected_palette(),
+            addEllipses = input$add_ellipse,
+            ellipse.level = 0.9,
+            legend.title = "Groups",
+            mean.point = FALSE,
+            pointsize = input$point_size
+          )
+          if (input$add_ellipse && input$ellipse_type == "convex") {
+            p$layers[[2]]$aes_params$linetype <- 2
+          }
+          p <- p +
+            theme(axis.line = element_line(color = "black"),
+                  panel.border = element_blank(),
+                  panel.background = element_blank(),
+                  axis.text = element_text(size = input$axis_font_size),
+                  axis.title = element_text(size = input$axis_font_size + 2)) +
+            scale_x_continuous(limits = input$x_range) +
+            scale_y_continuous(limits = input$y_range)
+          p
+        } else {
+          # NMDS plot
+          if (is.null(res$result) || is.null(res$result$points)) {
+            plot.new(); text(0.5, 0.5, "NMDS failed: Check data structure.", cex = 1.5); return()
+          }
+          nmds_points <- as.data.frame(res$result$points)
+          colnames(nmds_points) <- c("NMDS1", "NMDS2")
+          nmds_points$Group <- df$Group
+          ggplot(nmds_points, aes(NMDS1, NMDS2, color = Group)) +
+            geom_point(size = input$point_size) +
+            theme_minimal(base_size = input$axis_font_size) +
+            labs(title = "NMDS Plot")
         }
-        
-        # Set x_range, y_range
-        p <- p +
-          theme(axis.line = element_line(color = "black"),
-                panel.border = element_blank(),
-                panel.background = element_blank(),
-                axis.text = element_text(size = input$axis_font_size),
-                axis.title = element_text(size = input$axis_font_size + 2)) +
-          scale_x_continuous(limits = input$x_range) +
-          scale_y_continuous(limits = input$y_range)
-        
-        p
       }, width = function() input$plot_width, height = function() input$plot_height)
       
-      # PERMANOVA results
+      # PERMANOVA result
       output$permanova_result <- renderPrint({
-        res.pca <- pca_result()
+        res <- pca_dataset()
         df <- pca_dataset()
-        if (is.null(res.pca) || !"Group" %in% colnames(df)) {
+        if (is.null(res) || !"Group" %in% colnames(df)) {
           cat("No valid data for PERMANOVA.\n")
           return()
         }
-        
-        pca_coords <- res.pca$ind$coord
-        if (nrow(pca_coords) != nrow(df)) {
+        if (res$type == "NMDS" && (is.null(res$result) || is.null(res$result$points))) {
+          cat("NMDS failed: Check data structure.\n"); return()
+        }
+        coords <- res$X
+        if (nrow(coords) != nrow(df)) {
           cat("Data size mismatch. Cannot run PERMANOVA.\n")
           return()
         }
-        
-        permanova_result <- adonis2(pca_coords ~ Group, data = df, permutations = 999)
+        permanova_result <- adonis2(coords ~ Group, data = df, permutations = 999)
         cat("PERMANOVA Results:\n")
         print(permanova_result)
         cat("\nOverall P-value:", permanova_result$`Pr(>F)`[1], "\n")
@@ -262,20 +258,21 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
       
       # Pairwise PERMANOVA
       output$pairwise_result <- renderPrint({
-        res.pca <- pca_result()
+        res <- pca_dataset()
         df <- pca_dataset()
-        if (is.null(res.pca) || !"Group" %in% colnames(df)) {
+        if (is.null(res) || !"Group" %in% colnames(df)) {
           cat("No valid data for Pairwise PERMANOVA.\n")
           return()
         }
-        
-        pca_coords <- res.pca$ind$coord
-        if (nrow(pca_coords) != nrow(df)) {
+        if (res$type == "NMDS" && (is.null(res$result) || is.null(res$result$points))) {
+          cat("NMDS failed: Check data structure.\n"); return()
+        }
+        coords <- res$X
+        if (nrow(coords) != nrow(df)) {
           cat("Data size mismatch. Cannot run pairwiseAdonis.\n")
           return()
         }
-        
-        pairwise_result <- pairwise.adonis(pca_coords, df$Group, p.adjust.m = "bonferroni")
+        pairwise_result <- pairwise.adonis(coords, df$Group, p.adjust.m = "bonferroni")
         cat("Pairwise PERMANOVA Results:\n")
         print(pairwise_result)
       })

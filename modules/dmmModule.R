@@ -5,10 +5,10 @@
 ##
 ## Changelog (v4.4.3)
 ## • Default max K = 5, default criterion = Laplace (unchanged)
-## • **Removed** “Re-run example” button (v4.4.2)
+## • **Removed** "Re-run example" button (v4.4.2)
 ## • **NEW**: The criterion actually used to pick the model is now shown above
-##   - Sample Clusters table  ➜ *Criterion used: …*
-##   - Top drivers plot       ➜ *Criterion used: …*
+##   - Sample Clusters table  ➜ *Criterion used: ...*
+##   - Top drivers plot       ➜ *Criterion used: ...*
 ##
 # ────────────────────────────── LIBS ─────────────────────────────
 library(DirichletMultinomial)   # dmn(), AIC/BIC/Laplace, mixture()
@@ -72,8 +72,8 @@ dmmServer <- function(id) {
     
     DETECTION  <- 0.001   # 0.1 %
     PREVALENCE <- 0.10    # 10 % of samples
-    EX_PATH    <- "modules/dmmModule_example.txt"
-    CACHE_PATH <- "modules/dmmCache.rds"
+    EX_PATH    <- "modules/dmmModule_example.txt"  # Example data path
+    CACHE_PATH <- "modules/dmmCache.rds"           # Cache file path
     
     output$exampleDownload <- shiny::downloadHandler(
       filename = function() "dmmModule_example.txt",
@@ -106,9 +106,9 @@ dmmServer <- function(id) {
             if (nrow(mat) < 2 || ncol(mat) < 2) "Need ≥2 samples & ≥2 taxa." else
               if (sum(mat) == 0)                   "All zeros." else NULL }
     
-    rv <- reactiveValues(metrics = NULL, member = NULL, drivers = NULL, critTxt = NULL)
+    rv <- reactiveValues(metrics = NULL, member = NULL, drivers = NULL, critTxt = NULL, raw = NULL)
     
-    saveCache <- function() saveRDS(list(metrics = rv$metrics, member = rv$member, drivers = rv$drivers, critTxt = rv$critTxt), CACHE_PATH)
+    saveCache <- function() saveRDS(list(metrics = rv$metrics, member = rv$member, drivers = rv$drivers, critTxt = rv$critTxt, raw = rv$raw), CACHE_PATH)
     
     runDMM <- function(path, cache = FALSE) {
       raw <- tryCatch(read_counts(path), error = function(e) { shiny::showModal(shiny::modalDialog("Read error", e$message)); NULL })
@@ -153,6 +153,8 @@ dmmServer <- function(id) {
       drv$Cluster <- factor(paste0("Cluster_", drv$Cluster))
       rv$drivers <- drv |> group_by(Cluster) |> filter(abs(Contribution) > quantile(abs(Contribution), 0.8)) |> ungroup()
       
+      rv$raw <- raw  # Save original data
+      
       if (cache) saveCache()
       TRUE
     }
@@ -162,7 +164,7 @@ dmmServer <- function(id) {
     # Auto-load example (cached) once at start-up
     observeEvent(TRUE, {
       if (file.exists(CACHE_PATH)) {
-        tmp <- readRDS(CACHE_PATH); rv$metrics <- tmp$metrics; rv$member <- tmp$member; rv$drivers <- tmp$drivers; rv$critTxt <- tmp$critTxt
+        tmp <- readRDS(CACHE_PATH); rv$metrics <- tmp$metrics; rv$member <- tmp$member; rv$drivers <- tmp$drivers; rv$critTxt <- tmp$critTxt; rv$raw <- tmp$raw
       } else runDMM(EX_PATH, cache = TRUE)
     }, once = TRUE)
     
@@ -179,7 +181,18 @@ dmmServer <- function(id) {
     
     output$downloadClusters <- shiny::downloadHandler(
       filename = function() "sample_clusters.tsv",
-      content  = function(file) { write.table(rv$member, file, sep = "\t", quote = FALSE, row.names = FALSE) })
+      content  = function(file) {
+        member <- rv$member
+        raw <- rv$raw
+        if (!is.null(raw) && !is.null(member)) {
+          # Match sample order
+          member <- member[match(rownames(raw), member$Sample), ]
+          out <- cbind(member, raw)
+          write.table(out, file, sep = "\t", quote = FALSE, row.names = FALSE)
+        } else {
+          write.table(member, file, sep = "\t", quote = FALSE, row.names = FALSE)
+        }
+      })
     
     output$driverPlot <- renderPlot({ shiny::req(rv$drivers);
       ggplot(rv$drivers, aes(x = reorder_within(OTU, Contribution, Cluster), y = Contribution, fill = Cluster)) +
