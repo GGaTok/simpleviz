@@ -26,7 +26,7 @@ pcaUI <- function(id) {
   ns <- NS(id)
   
   tagList(
-    titlePanel("PCA Plot"),
+    titlePanel("Ordination Plot"),
     sidebarLayout(
       sidebarPanel(
         # File upload
@@ -100,23 +100,29 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
           if (all(c("Sample", "Group") %in% colnames(df))) {
             return(df)
           }
-          # Remove OTUs (columns) with total sum 0
-          X <- df[, setdiff(colnames(df), "Group"), drop = FALSE]
-          X <- as.data.frame(lapply(X, as.numeric))
-          X[X < 0] <- 0  # Set all negative values to 0 for all analyses
-          # Calculate analysis result (PCA or NMDS)
-          if (input$analysis_method == "PCA") {
-            res <- PCA(X, scale.unit = TRUE, graph = FALSE)
-            return(list(type = "PCA", result = res, X = X))
+          return(df)
+        }
+      })
+      
+      # Analysis result (PCA or NMDS)
+      analysis_result <- reactive({
+        df <- pca_dataset()
+        numeric_cols <- setdiff(colnames(df), c("Sample", "Group", "Variable"))
+        X <- df[, numeric_cols, drop = FALSE]
+        X <- as.data.frame(lapply(X, as.numeric))
+        X[X < 0] <- 0  # Set all negative values to 0 for all analyses
+        X <- X[, colSums(X) > 0, drop = FALSE]  # Remove OTUs (columns) with total sum 0
+        if (input$analysis_method == "PCA") {
+          res <- PCA(X, scale.unit = TRUE, graph = FALSE)
+          return(list(type = "PCA", result = res, X = X))
+        } else {
+          res <- tryCatch({
+            metaMDS(X, distance = "bray", k = 2, trymax = 300)
+          }, error = function(e) NULL)
+          if (is.null(res) || is.null(res$points)) {
+            return(list(type = "NMDS", result = NULL, X = X))
           } else {
-            res <- tryCatch({
-              metaMDS(X, distance = "bray", k = 2, trymax = 300)
-            }, error = function(e) NULL)
-            if (is.null(res) || is.null(res$points)) {
-              return(list(type = "NMDS", result = NULL, X = X))
-            } else {
-              return(list(type = "NMDS", result = res, X = X))
-            }
+            return(list(type = "NMDS", result = res, X = X))
           }
         }
       })
@@ -152,25 +158,30 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
       
       # Dynamically update axis ranges when file is uploaded/axis is changed
       observe({
-        res <- pca_dataset()
+        res <- analysis_result()  # Use analysis_result() to get PCA/NMDS results
         if (is.null(res)) return()
-        
-        x_axis <- which(paste0("Dim", 1:10) == input$x_axis)  # Assume maximum 10 dimensions
+
+        if (res$type == "PCA") {
+          coords <- res$result$ind$coord
+        } else if (res$type == "NMDS" && !is.null(res$result) && !is.null(res$result$points)) {
+          coords <- res$result$points
+        } else {
+          return()
+        }
+
+        x_axis <- which(paste0("Dim", 1:10) == input$x_axis)
         y_axis <- which(paste0("Dim", 1:10) == input$y_axis)
-        
-        # PCA coordinates
-        coords <- res$result$ind$coord
         if (ncol(coords) < max(x_axis, y_axis)) return()
-        
+
         x_range <- range(coords[, x_axis])
         y_range <- range(coords[, y_axis])
-        
+
         # Increase padding for wider range
-        x_padding <- diff(x_range) * 0.3  # Increased from 0.2 to 0.3
-        y_padding <- diff(y_range) * 0.4  # Increased from 0.2 to 0.4
+        x_padding <- diff(x_range) * 0.3
+        y_padding <- diff(y_range) * 0.4
         x_range_initial <- x_range + c(-x_padding, x_padding)
         y_range_initial <- y_range + c(-y_padding, y_padding)
-        
+
         # Set appropriate slider ranges with wider limits
         x_min <- floor(x_range_initial[1])
         x_max <- ceiling(x_range_initial[2])
@@ -196,7 +207,7 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
       # PCA/NMDS Plot
       output$pca_plot <- renderPlot({
         df <- pca_dataset()
-        res <- pca_dataset()
+        res <- analysis_result()
         if (is.null(res) || !"Group" %in% colnames(df)) return()
         if (res$type == "PCA") {
           x_axis <- which(paste0("Dim", 1:10) == input$x_axis)
@@ -244,7 +255,7 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
       
       # PERMANOVA result
       output$permanova_result <- renderPrint({
-        res <- pca_dataset()
+        res <- analysis_result()
         df <- pca_dataset()
         if (is.null(res) || !"Group" %in% colnames(df)) {
           cat("No valid data for PERMANOVA.\n")
@@ -266,7 +277,7 @@ pcaServer <- function(id, examplePCAData=example_pca_data) {
       
       # Pairwise PERMANOVA
       output$pairwise_result <- renderPrint({
-        res <- pca_dataset()
+        res <- analysis_result()
         df <- pca_dataset()
         if (is.null(res) || !"Group" %in% colnames(df)) {
           cat("No valid data for Pairwise PERMANOVA.\n")
