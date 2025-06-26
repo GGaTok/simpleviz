@@ -26,16 +26,22 @@ library(gggenes)
 library(rtracklayer)
 library(tools)
 library(svglite)
-
+library(ANCOMBC)
+library(phyloseq)
+library(DirichletMultinomial)
+library(tidytext)
 
 # Load configuration and modules
 source("modules/boxplotModule.R")
+source("modules/dmmModule.R")
 source("modules/pcaModule.R")
 source("modules/volcanoModule.R")
 source("modules/heatmapModule.R")
 source("modules/deseqModule.R")
 source("modules/citationModule.R")
 source("modules/correlationModule.R")
+source("modules/ancombc2Module.R")
+#source("modules/snpModule.R")
 #source("modules/GenesyntenyModule.R")
 # Load some fonts
 font_add_google("Tinos", "Times New Roman")
@@ -43,32 +49,28 @@ showtext_auto()
 addResourcePath("modules", "modules")
 
 # Define UI
-ui <- fluidPage(
-  tags$head(
-    tags$style(HTML("
-      .logo-container {
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        z-index: 1000;
-      }
-    "))
-  ),
-  navbarPage(
-    title = "SimpleViz",
-    
-    # Tabs
-    tabPanel("Box/Violin/Dot Plot", boxplotUI("boxplot")),
-    tabPanel("PCA Plot", pcaUI("pca")),
-    tabPanel("Volcano Plot", volcanoUI("volcano")),
-    tabPanel("Heatmap", heatmapUI("heatmap")),
-    tabPanel("DESeq2", deseqUI("DESeq2")),
-    tabPanel("Correlation matrix",correlationUI("correlation")),
-#    tabPanel("Genesynteny",GenesyntenyUI("Genesynteny")),
-    tabPanel("Citation", citationUI("citation"))
-  ),
-  div(class = "logo-container",
-      img(src = "modules/KNU.png", height = "40px")
+ui <- navbarPage(
+  title = "SimpleViz",
+  
+  # Tabs
+  tabPanel("Box/Violin/Dot Plot", boxplotUI("boxplot")),
+  tabPanel("PCA Plot", pcaUI("pca")),
+  tabPanel("Volcano Plot", volcanoUI("volcano")),
+  tabPanel("Heatmap", heatmapUI("heatmap")),
+  tabPanel("DESeq2", deseqUI("DESeq2")),
+  tabPanel("Correlation matrix",correlationUI("correlation")),
+#  tabPanel("Genesynteny",GenesyntenyUI("Genesynteny")),
+  tabPanel("Ancombc2",ancombc2UI("ancombc2")),
+  tabPanel("DMM Clustering",dmmUI("dmm")),
+#  tabPanel("SNP Finder", snpUI("snp")),
+  tabPanel("Citation", citationUI("citation")),
+  
+  header = tags$div(
+    style = "position: absolute;right:-100px; top: -50px; padding: 100px;",
+    tags$img(
+      src = "modules/KNU.png",
+      style = "height: 40px;"
+    )
   )
 )
 # Define Server
@@ -79,6 +81,9 @@ server <- function(input, output, session) {
   heatmapServer("heatmap")
   deseqServer("DESeq2")
   correlationServer("correlation")
+  ancombc2Server("ancombc2")
+  dmmServer("dmm")
+#  snpServer("snp") 
 #  GenesyntenyServer("Genesynteny")
   citationServer("citation")
   
@@ -87,4 +92,3 @@ options(shiny.maxRequestSize = 100 * 1024^2)
 
 # Run the app
 shinyApp(ui, server)
-
