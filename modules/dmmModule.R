@@ -151,7 +151,11 @@ dmmServer <- function(id) {
       
       drv <- melt(fitted(best)); names(drv) <- c("OTU", "Cluster", "Contribution")
       drv$Cluster <- factor(paste0("Cluster_", drv$Cluster))
-      rv$drivers <- drv |> group_by(Cluster) |> filter(abs(Contribution) > quantile(abs(Contribution), 0.8)) |> ungroup()
+      
+      rv$drivers <- drv |>
+        group_by(Cluster) |>
+        slice_max(order_by = abs(Contribution), n = 10, with_ties = FALSE) |>
+        ungroup()
       
       rv$raw <- raw  # Save original data
       
